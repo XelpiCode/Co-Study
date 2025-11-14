@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { registerWithEmail, loginWithGoogle } from "@/lib/firebase/auth";
+import { saveUserProfile, getUserProfile } from "@/lib/firebase/firestore";
 import { useAuthStore } from "@/store/authStore";
+import { isFirebaseConfigValid } from "@/lib/firebase/config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -18,6 +21,38 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { setUser } = useAuthStore();
+  const [configError, setConfigError] = useState(false);
+
+  useEffect(() => {
+    if (!isFirebaseConfigValid()) {
+      setConfigError(true);
+    }
+  }, []);
+
+  if (configError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+          <h1 className="text-2xl font-bold text-center mb-4 font-heading text-red-600">
+            Configuration Error
+          </h1>
+          <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+            <p className="text-sm text-red-700 mb-2">
+              Firebase is not properly configured. Please:
+            </p>
+            <ol className="list-decimal list-inside text-sm text-red-700 space-y-1">
+              <li>Create a <code className="bg-red-100 px-1 rounded">.env.local</code> file in the project root</li>
+              <li>Add your Firebase configuration values</li>
+              <li>Restart the development server</li>
+            </ol>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+            See <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">SETUP.md</code> for detailed instructions.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,14 +68,32 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!name.trim()) {
+      setError("Please enter your full name");
+      return;
+    }
+
+    if (!classGrade) {
+      setError("Please select your class");
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // Register the user with email/password
       const result = await registerWithEmail(email, password);
-      // TODO: Save user profile with name and class to Firestore
+
+      // Save user profile to Firestore
+      await saveUserProfile(result.user, {
+        name: name.trim(),
+        classGrade: classGrade,
+      });
+
       setUser(result.user);
       router.push("/dashboard");
     } catch (err: any) {
+      console.error("Registration error:", err);
       setError(err.message || "Failed to register");
     } finally {
       setLoading(false);
@@ -53,9 +106,30 @@ export default function RegisterPage() {
 
     try {
       const result = await loginWithGoogle();
-      setUser(result.user);
-      router.push("/dashboard");
+
+      // Check if user profile exists
+      const existingProfile = await getUserProfile(result.user.uid);
+
+      if (existingProfile) {
+        // User already has a profile, proceed to dashboard
+        setUser(result.user);
+        router.push("/dashboard");
+      } else {
+        // New user - need to collect additional info
+        // Store user temporarily and redirect to profile completion
+        setUser(result.user);
+        // You can either:
+        // 1. Redirect to a profile completion page
+        // router.push("/auth/complete-profile");
+        // 2. Or create a basic profile with Google data
+        await saveUserProfile(result.user, {
+          name: result.user.displayName || "User",
+          classGrade: "", // Will need to be filled later
+        });
+        router.push("/dashboard");
+      }
     } catch (err: any) {
+      console.error("Google login error:", err);
       setError(err.message || "Failed to register with Google");
     } finally {
       setLoading(false);
@@ -63,12 +137,15 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-8">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-center mb-2 font-heading">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 px-4 py-8">
+      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 relative">
+        <div className="absolute top-4 right-4">
+          <ThemeToggle />
+        </div>
+        <h1 className="text-3xl font-bold text-center mb-2 font-heading text-gray-900 dark:text-white">
           Create Account
         </h1>
-        <p className="text-center text-gray-600 mb-6">
+        <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
           Join Co-Study and start collaborating
         </p>
 
@@ -80,7 +157,7 @@ export default function RegisterPage() {
 
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Full Name
             </label>
             <Input
@@ -88,20 +165,19 @@ export default function RegisterPage() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="John Doe"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="class" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="class" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Class
             </label>
             <select
               id="class"
               value={classGrade}
               onChange={(e) => setClassGrade(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               required
             >
               <option value="">Select your class</option>
@@ -113,7 +189,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Email
             </label>
             <Input
@@ -121,13 +197,12 @@ export default function RegisterPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="your.email@example.com"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Password
             </label>
             <Input
@@ -135,13 +210,12 @@ export default function RegisterPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Confirm Password
             </label>
             <Input
@@ -149,7 +223,6 @@ export default function RegisterPage() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="••••••••"
               required
             />
           </div>
@@ -161,10 +234,10 @@ export default function RegisterPage() {
 
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
+            <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or continue with</span>
+            <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">Or continue with</span>
           </div>
         </div>
 
@@ -195,7 +268,7 @@ export default function RegisterPage() {
           Sign up with Google
         </Button>
 
-        <p className="mt-6 text-center text-sm text-gray-600">
+        <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
           Already have an account?{" "}
           <Link href="/auth/login" className="text-primary font-semibold hover:underline">
             Sign in

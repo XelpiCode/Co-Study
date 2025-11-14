@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { getCurrentUser } from "@/lib/firebase/auth";
 import { subscribeToMessages, sendMessage, type Message } from "@/lib/firebase/firestore";
-import { uploadImage, uploadPDF } from "@/lib/firebase/storage";
+// File upload temporarily disabled - Storage not configured
+// import { uploadImage, uploadPDF } from "@/lib/firebase/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDistanceToNow } from "date-fns";
@@ -16,9 +17,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [groupId] = useState("demo-group"); // TODO: Get from selected group
-  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -65,39 +64,10 @@ export default function ChatPage() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    setUploading(true);
-    try {
-      let fileURL: string;
-      let messageType: "image" | "file" = "file";
-
-      if (file.type.startsWith("image/")) {
-        fileURL = await uploadImage(file, user.uid, groupId);
-        messageType = "image";
-      } else {
-        fileURL = await uploadPDF(file, user.uid, groupId);
-      }
-
-      await sendMessage(groupId, {
-        text: messageType === "image" ? "📷 Image" : `📄 ${file.name}`,
-        senderId: user.uid,
-        senderName: user.displayName || user.email || "Anonymous",
-        type: messageType,
-        fileURL,
-        fileName: file.name,
-      });
-    } catch (error) {
-      console.error("Error uploading file:", error);
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
+  // File upload temporarily disabled
+  // const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   // Implementation disabled - Storage not configured
+  // };
 
   if (!user) {
     return (
@@ -190,31 +160,13 @@ export default function ChatPage() {
         </div>
 
         <form onSubmit={handleSendMessage} className="flex gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,.pdf"
-            onChange={handleFileUpload}
-            className="hidden"
-            id="file-upload"
-          />
-          <label htmlFor="file-upload">
-            <Button
-              type="button"
-              variant="outline"
-              className="px-4"
-              disabled={uploading}
-            >
-              {uploading ? "📤" : "📎"}
-            </Button>
-          </label>
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type a message..."
             className="flex-1"
           />
-          <Button type="submit" disabled={!newMessage.trim() || uploading}>
+          <Button type="submit" disabled={!newMessage.trim()}>
             Send
           </Button>
         </form>

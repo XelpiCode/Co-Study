@@ -14,8 +14,18 @@ import {
   Timestamp,
   QuerySnapshot,
   DocumentData,
+  setDoc,
 } from "firebase/firestore";
 import { db } from "./config";
+import { User } from "firebase/auth";
+
+const checkDb = () => {
+  if (!db) {
+    throw new Error(
+      "Firebase is not configured. Please check your .env.local file and ensure all Firebase environment variables are set."
+    );
+  }
+};
 
 // Types
 export interface Message {
@@ -39,12 +49,22 @@ export interface Group {
   leaders: string[];
 }
 
+export interface UserProfile {
+  uid: string;
+  email: string;
+  name: string;
+  classGrade: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Messages
 export const sendMessage = async (
   groupId: string,
   message: Omit<Message, "id" | "timestamp">
 ) => {
-  const messagesRef = collection(db, "groups", groupId, "messages");
+  checkDb();
+  const messagesRef = collection(db!, "groups", groupId, "messages");
   return await addDoc(messagesRef, {
     ...message,
     timestamp: Timestamp.now(),
@@ -55,7 +75,8 @@ export const subscribeToMessages = (
   groupId: string,
   callback: (messages: Message[]) => void
 ) => {
-  const messagesRef = collection(db, "groups", groupId, "messages");
+  checkDb();
+  const messagesRef = collection(db!, "groups", groupId, "messages");
   const q = query(messagesRef, orderBy("timestamp", "asc"));
 
   return onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
@@ -72,7 +93,8 @@ export const subscribeToMessages = (
 
 // Groups
 export const createGroup = async (group: Omit<Group, "id" | "createdAt">) => {
-  const groupsRef = collection(db, "groups");
+  checkDb();
+  const groupsRef = collection(db!, "groups");
   return await addDoc(groupsRef, {
     ...group,
     createdAt: Timestamp.now(),
@@ -80,7 +102,8 @@ export const createGroup = async (group: Omit<Group, "id" | "createdAt">) => {
 };
 
 export const getGroup = async (groupId: string) => {
-  const groupRef = doc(db, "groups", groupId);
+  checkDb();
+  const groupRef = doc(db!, "groups", groupId);
   const groupSnap = await getDoc(groupRef);
   if (groupSnap.exists()) {
     return { id: groupSnap.id, ...groupSnap.data() } as Group;
@@ -89,7 +112,8 @@ export const getGroup = async (groupId: string) => {
 };
 
 export const getUserGroups = async (userId: string) => {
-  const groupsRef = collection(db, "groups");
+  checkDb();
+  const groupsRef = collection(db!, "groups");
   const q = query(groupsRef, where("members", "array-contains", userId));
   const querySnapshot = await getDocs(q);
   const groups: Group[] = [];
@@ -98,4 +122,60 @@ export const getUserGroups = async (userId: string) => {
   });
   return groups;
 };
+
+// User Profile Functions
+/**
+ * Save user profile to Firestore
+ */
+export async function saveUserProfile(
+  user: User,
+  profileData: { name: string; classGrade: string }
+): Promise<void> {
+  checkDb();
+  const userRef = doc(db!, "users", user.uid);
+
+  const profile: UserProfile = {
+    uid: user.uid,
+    email: user.email || "",
+    name: profileData.name,
+    classGrade: profileData.classGrade,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  await setDoc(userRef, profile);
+}
+
+/**
+ * Get user profile from Firestore
+ */
+export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+  checkDb();
+  const userRef = doc(db!, "users", uid);
+  const userSnap = await getDoc(userRef);
+  if (userSnap.exists()) {
+    return userSnap.data() as UserProfile;
+  }
+  return null;
+}
+
+/**
+ * Update user profile in Firestore
+ */
+export async function updateUserProfile(
+  uid: string,
+  updates: Partial<Omit<UserProfile, "uid" | "email" | "createdAt">>
+): Promise<void> {
+  checkDb();
+  const userRef = doc(db!, "users", uid);
+
+  await setDoc(
+    userRef,
+    {
+      ...updates,
+      updatedAt: new Date(),
+    },
+    { merge: true }
+  );
+}
 

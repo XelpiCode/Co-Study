@@ -17,7 +17,7 @@
    - Create a Firebase project at https://console.firebase.google.com
    - Enable Authentication (Email/Password and Google)
    - Create a Firestore database
-   - Enable Storage
+   - ⚠️ **Storage is optional** - Skip for now (file uploads disabled)
    - Copy your Firebase config values
    - Create a `.env.local` file in the root directory:
    ```env
@@ -28,6 +28,8 @@
    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
    NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
    ```
+   
+   **Note:** `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` can be left empty or set to your project's default value. File uploads are currently disabled.
 
 3. **Run Development Server**
    ```bash
