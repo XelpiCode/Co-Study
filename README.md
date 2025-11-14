@@ -519,8 +519,8 @@ This project is currently in development for a coding competition. After the com
 ## 📞 Contact & Support
 
 - **Issues**: GitHub Issues (when open-sourced)
-- **Email**: [Your email for the competition]
-- **Documentation**: [Link to detailed docs]
+- **Email**: ankith.r.dev@gmail.com
+- **Documentation**: Not yet made
 
 ---
 
