@@ -510,7 +510,7 @@ This project is currently in development for a coding competition. After the com
 
 ## 👨‍💻 Development Team
 
-- **Developer**: [Ankith R]
+- **Developer**: Ankith R
 - **Framework**: Next.js + Firebase
 - **AI Assistant**: Cursor AI, Claude
 
