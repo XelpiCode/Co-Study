@@ -57,76 +57,144 @@ A cross-platform web application that centralizes study resources, enables real-
 
 ---
 
-## 🔨 Currently Working On
+## ✅ Completed Features
 
-### Real-Time Chat System
-**Priority**: HIGH - Core feature for student collaboration
+### 1. Authentication & User Management ✅
+- ✅ Email/password registration and login
+- ✅ Google OAuth integration
+- ✅ User profiles with:
+  - Name, class
+  - Groups array (tracks user's joined groups)
+- ✅ Auto-redirect to dashboard if already logged in
+- ✅ Password reset functionality (Firebase Auth built-in)
 
-**Features to Implement**:
-- **Group Chat**:
+### 2. Class-Based Groups System ✅
+- ✅ **Group Creation**: Students can create groups by class and division (e.g., "9B", "10A")
+- ✅ **Group Management**:
+  - Create groups with class dropdown and division input
+  - Join existing groups
+  - View all available groups
+  - See member count for each group
+- ✅ **Group Information**:
+  - Group name (format: {class}{division})
+  - Class and division
+  - Member count
+  - Created by and creation date
+- ✅ **User-Group Sync**: User's groups array automatically synced in Firestore
+
+### 3. Real-Time Chat System ✅
+- ✅ **Group Chat**:
   - Real-time messaging per class group
   - Text messages with timestamp
-  - Image sharing in chat
-  - File sharing (PDFs, documents)
-  - Message delivery status
-  
-- **Chat UI Components**:
   - WhatsApp-like message bubbles
   - Sender name and time display
+- ✅ **Chat UI Components**:
+  - Message bubbles (own messages vs received)
   - Scroll to bottom on new message
   - Message input with send button
-  - File upload button
-  
-- **Real-time Sync**:
+  - Group name displayed in chat header
+- ✅ **Real-time Sync**:
   - Firebase Firestore onSnapshot listeners
   - Instant message updates across all devices
-  - Typing indicators (optional for MVP)
-  - Online/offline status indicators
-  
-- **Message Features**:
-  - Send text messages
-  - Upload and share images
-  - Upload and share PDF files
-  - Auto-scroll to latest message
   - Message timestamps (relative: "2 mins ago")
+- ✅ **Navigation**: 
+  - Direct links to group chats from dashboard
+  - Back button to return to dashboard
+
+### 4. Dark Mode Support ✅
+- ✅ Theme toggle component on all pages
+- ✅ Consistent dark mode styling across:
+  - Login/Register pages
+  - Dashboard
+  - Groups page
+  - Chat page
+- ✅ Proper contrast and readability in both themes
+
+### 5. UI/UX Improvements ✅
+- ✅ Consistent navigation bars across all pages
+- ✅ Theme toggle in navigation
+- ✅ Responsive design for mobile and desktop
+- ✅ Loading states and error handling
+
+---
+
+## 🔨 Currently Working On
+
+### Daily Coordination Features
+**Priority**: HIGH - Essential for daily class coordination
+
+**Features to Implement**:
+
+#### Today's Work
+- **What was taught in class today**
+  - Subject-wise breakdown
+  - Topics covered
+  - Posted by group leader or any member
+  - Timestamp and date
+  - Edit/delete functionality for post author
+  - View history of past "Today's Work" posts
+
+- **UI Components**:
+  - Form to add today's work entry
+  - Subject selector dropdown
+  - Topics input (text area with formatting)
+  - Display cards showing today's work by subject
+  - Date picker to view past entries
+
+#### Homework Tracker
+- **Assignment Management**:
+  - Create homework entries (subject, description, due date)
+  - Mark homework as completed
+  - View pending vs completed homework
+  - Filter by subject or date
+  - Get reminders for upcoming due dates
+
+- **UI Components**:
+  - Homework creation form
+  - List view of assignments
+  - Checkbox to mark as complete
+  - Color-coded by due date (red for overdue, yellow for upcoming)
+  - Due date countdown
+
+#### Tomorrow's Preparation
+- **Pre-class Preparation**:
+  - What to study for next class
+  - Topics to prepare
+  - Helps students stay ahead
+  - Link to relevant notes/resources
+
+#### Daily Summary
+- **Quick Revision Material**:
+  - Key points from today's lessons
+  - Important formulas, concepts, definitions
+  - Quick revision material
+  - Can be added by group leaders or members
 
 **Technical Implementation**:
 ```typescript
-// Firestore structure for messages
-messages/{groupId}/messages/{messageId}
-  - text: string
-  - senderId: string
-  - senderName: string
-  - timestamp: Timestamp
-  - type: "text" | "image" | "file"
-  - fileURL?: string
-  - fileName?: string
+// Firestore structure for daily coordination
+groups/{groupId}/dailyWork/{workId}
+  - date: Date
+  - subject: string
+  - topics: string[]
+  - postedBy: userId
+  - postedAt: Timestamp
+  - type: "today" | "tomorrow" | "summary"
+
+groups/{groupId}/homework/{homeworkId}
+  - subject: string
+  - description: string
+  - dueDate: Timestamp
+  - postedBy: userId
+  - postedAt: Timestamp
+  - completedBy: array of userIds
 ```
 
 ---
 
-## ✅ Core Features (To Be Built After Chat)
+## 📋 Upcoming Features (After Daily Coordination)
 
-### 1. Authentication & User Management
-- Email/password registration and login
-- Google OAuth integration
-- User profiles with:
-  - Name, class
-  - Profile picture
-  - Role (Student, Group Leader)
-- Password reset functionality
-
-### 2. Class-Based Groups
-- **Group Creation**: Students can join/create groups by class (e.g., "Class 9A", "Class 10 Science")
-- **Group Roles**:
-  - **Group Leader/Admin**: Can post announcements, exam dates, manage members
-  - **Members**: Can post notes, participate in discussions
-- **Group Information**:
-  - Class name and section
-  - Member count and list
-  - Group creation date
-
-### 3. Study Resources Module
+### 6. Study Resources Module
 - **NCERT Textbooks**:
   - Built-in PDF viewer for NCERT books
   - Organized by class (Math, Science, Social Studies for Class 9-10)
@@ -150,30 +218,7 @@ messages/{groupId}/messages/{messageId}
   - Fulfill requests by uploading notes
   - Notification when request is fulfilled
 
-### 4. Daily Coordination Features
-- **Today's Work**: 
-  - What was taught in class today
-  - Topics covered
-  - Posted by group leader or any member
-  - Timestamp and date
-
-- **Homework Tracker**:
-  - Assignment details (subject, description, due date)
-  - Mark homework as completed
-  - View pending vs completed homework
-  - Get reminders for upcoming due dates
-
-- **Tomorrow's Preparation**:
-  - What to study for next class
-  - Topics to prepare
-  - Helps students stay ahead
-
-- **Daily Summary**:
-  - Key points from today's lessons
-  - Important formulas, concepts, definitions
-  - Quick revision material
-
-### 5. Exam Management System
+### 7. Exam Management System
 - **Exam Calendar**:
   - Group leaders post test/exam dates
   - Subject, date, time, syllabus
@@ -195,7 +240,7 @@ messages/{groupId}/messages/{messageId}
   - Discuss difficult questions
   - Self-assessment tools
 
-### 6. Smart Study Planner
+### 8. Smart Study Planner
 - **Personal Study Schedule**:
   - Create daily/weekly study plans
   - Assign topics to specific dates
@@ -211,7 +256,7 @@ messages/{groupId}/messages/{messageId}
   - Topics completed
   - Exam readiness score
 
-### 7. Rich Text & Math Support
+### 9. Rich Text & Math Support
 - **Mathematical Symbols**:
   - Basic: √, ², ³, ≥, ≤, ≠, ≈, ±
   - Advanced: ∫, ∑, ∏, ∂, ∞, π, θ
@@ -223,10 +268,7 @@ messages/{groupId}/messages/{messageId}
   - Bullet points and numbered lists
   - Code blocks for programming topics
 
-### 8. Real-Time Chat
-*See "Currently Working On" section above for detailed implementation plan*
-
-### 9. Smart Notifications
+### 10. Smart Notifications
 Users receive notifications for:
 - ✅ Daily todo/study list posted
 - ✅ New homework assignment
@@ -272,16 +314,19 @@ users/
   {userId}/
     - name: string
     - email: string
-    - class: string (e.g., "Class 9" or "Class 10")
-    - profilePicture: string (URL)
-    - role: string ("student" | "leader")
+    - classGrade: string (e.g., "Class 9" or "Class 10")
+    - groups: array of groupIds
+    - profilePicture: string (URL) - future
+    - role: string ("student" | "leader") - future
     - createdAt: timestamp
-    - studyStats: object
+    - updatedAt: timestamp
+    - studyStats: object - future
 
 groups/
   {groupId}/
-    - name: string (e.g., "Class 9A")
-    - class: string ("Class 9" | "Class 10")
+    - name: string (e.g., "9B")
+    - class: string ("Class 9" | "Class 10" | "Class 11" | "Class 12")
+    - division: string (e.g., "A", "B", "C")
     - createdBy: userId
     - createdAt: timestamp
     - members: array of userIds
@@ -322,17 +367,17 @@ exams/
     - groupId: string
     - prepMaterial: object
     
-messages/
+groups/
   {groupId}/
     messages/
       {messageId}/
         - text: string
         - senderId: userId
-        - timestamp: timestamp
-        - type: string ("text" | "image" | "file")
+        - senderName: string
+        - timestamp: Timestamp
+        - type: "text" | "image" | "file"
         - fileURL: string (optional)
-        - replyTo: messageId (optional)
-        - reactions: object
+        - fileName: string (optional)
 
 studyPlans/
   {userId}/
@@ -532,5 +577,5 @@ This project is currently in development for a coding competition. After the com
 
 ---
 
-**Last Updated**: November 2025
-**Version**: 1.0.0 (MVP in development)
+**Last Updated**: December 2024
+**Version**: 1.1.0 (MVP - Core features completed, Daily Coordination in progress)

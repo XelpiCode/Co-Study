@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { registerWithEmail, loginWithGoogle } from "@/lib/firebase/auth";
+import { registerWithEmail, loginWithGoogle, getCurrentUser } from "@/lib/firebase/auth";
 import { saveUserProfile, getUserProfile } from "@/lib/firebase/firestore";
 import { useAuthStore } from "@/store/authStore";
 import { isFirebaseConfigValid } from "@/lib/firebase/config";
@@ -30,6 +30,17 @@ export default function RegisterPage() {
       setConfigError(true);
     }
   }, []);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+        router.push("/dashboard");
+      }
+    };
+    checkAuth();
+  }, [router, setUser]);
 
   if (configError) {
     return (

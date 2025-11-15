@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { loginWithEmail, loginWithGoogle } from "@/lib/firebase/auth";
+import { loginWithEmail, loginWithGoogle, getCurrentUser } from "@/lib/firebase/auth";
 import { useAuthStore } from "@/store/authStore";
 import { isFirebaseConfigValid } from "@/lib/firebase/config";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,17 @@ export default function LoginPage() {
       setConfigError(true);
     }
   }, []);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+        router.push("/dashboard");
+      }
+    };
+    checkAuth();
+  }, [router, setUser]);
 
   if (configError) {
     return (
