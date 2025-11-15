@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { getCurrentUser } from "@/lib/firebase/auth";
@@ -23,22 +23,7 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      setLoading(true);
-      const currentUser = await getCurrentUser();
-      if (!currentUser) {
-        router.push("/auth/login");
-      } else {
-        setUser(currentUser);
-        loadProfile();
-      }
-      setLoading(false);
-    };
-    checkAuth();
-  }, [router, setUser, setLoading]);
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     if (!user) return;
     try {
       setLoadingProfile(true);
@@ -52,14 +37,27 @@ export default function ProfilePage() {
     } finally {
       setLoadingProfile(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      setLoading(true);
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
+        router.push("/auth/login");
+      } else {
+        setUser(currentUser);
+      }
+      setLoading(false);
+    };
+    checkAuth();
+  }, [router, setUser, setLoading]);
 
   useEffect(() => {
     if (user) {
       loadProfile();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, loadProfile]);
 
   const handleSaveName = async () => {
     if (!user || !profile) return;

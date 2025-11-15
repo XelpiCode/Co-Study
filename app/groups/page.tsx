@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { getCurrentUser } from "@/lib/firebase/auth";
@@ -33,22 +33,7 @@ export default function GroupsPage() {
   const [newGroupClass, setNewGroupClass] = useState("");
   const [newGroupDivision, setNewGroupDivision] = useState("");
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      setLoading(true);
-      const currentUser = await getCurrentUser();
-      if (!currentUser) {
-        router.push("/auth/login");
-      } else {
-        setUser(currentUser);
-        loadGroups();
-      }
-      setLoading(false);
-    };
-    checkAuth();
-  }, [router, setUser, setLoading]);
-
-  const loadGroups = async () => {
+  const loadGroups = useCallback(async () => {
     if (!user) return;
     try {
       setLoadingGroups(true);
@@ -64,13 +49,27 @@ export default function GroupsPage() {
     } finally {
       setLoadingGroups(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      setLoading(true);
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
+        router.push("/auth/login");
+      } else {
+        setUser(currentUser);
+      }
+      setLoading(false);
+    };
+    checkAuth();
+  }, [router, setUser, setLoading]);
 
   useEffect(() => {
     if (user) {
       loadGroups();
     }
-  }, [user]);
+  }, [user, loadGroups]);
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();

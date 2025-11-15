@@ -113,7 +113,7 @@ export default function DashboardPage() {
           ) : (
             <div className="mb-8 p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
               <p className="text-gray-700 dark:text-gray-300 mb-4">
-                You haven't joined any groups yet. Join or create a group to start chatting!
+                You haven&apos;t joined any groups yet. Join or create a group to start chatting!
               </p>
               <Link href="/groups">
                 <Button>Go to Groups</Button>

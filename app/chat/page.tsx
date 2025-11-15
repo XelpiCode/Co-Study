@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { getCurrentUser } from "@/lib/firebase/auth";
@@ -20,7 +20,7 @@ import { useUserProfile } from "@/lib/hooks/useUserProfile";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 
-export default function ChatPage() {
+function ChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, setUser, setLoading } = useAuthStore();
@@ -234,3 +234,19 @@ export default function ChatPage() {
   );
 }
 
+export default function ChatPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <ChatContent />
+    </Suspense>
+  );
+}
