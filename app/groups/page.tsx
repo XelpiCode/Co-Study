@@ -15,10 +15,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useUserProfile } from "@/lib/hooks/useUserProfile";
+import Link from "next/link";
 
 export default function GroupsPage() {
   const router = useRouter();
   const { user, setUser, setLoading } = useAuthStore();
+  const { profile } = useUserProfile();
   const [groups, setGroups] = useState<Group[]>([]);
   const [userGroups, setUserGroups] = useState<Group[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(true);
@@ -166,7 +169,11 @@ export default function GroupsPage() {
             </div>
             <div className="flex items-center gap-4">
               <ThemeToggle />
-              <span className="text-gray-700 dark:text-gray-300">{user.email}</span>
+              <Link href="/profile">
+                <span className="text-gray-700 dark:text-gray-300 hover:underline cursor-pointer">
+                  {profile?.name || user.displayName || user.email?.split("@")[0] || "User"}
+                </span>
+              </Link>
             </div>
           </div>
         </div>

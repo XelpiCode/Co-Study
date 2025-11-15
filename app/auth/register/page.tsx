@@ -135,10 +135,14 @@ export default function RegisterPage() {
         // 1. Redirect to a profile completion page
         // router.push("/auth/complete-profile");
         // 2. Or create a basic profile with Google data
-        await saveUserProfile(result.user, {
-          name: result.user.displayName || "User",
-          classGrade: "", // Will need to be filled later
-        });
+        // Check if user already has a profile
+        const existingProfile = await getUserProfile(result.user.uid);
+        if (!existingProfile) {
+          await saveUserProfile(result.user, {
+            name: result.user.displayName || "User",
+            classGrade: "", // Will need to be filled later
+          });
+        }
         router.push("/dashboard");
       }
     } catch (err: any) {

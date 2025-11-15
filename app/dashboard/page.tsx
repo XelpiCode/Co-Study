@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { getCurrentUser } from "@/lib/firebase/auth";
 import { getUserGroups, type Group } from "@/lib/firebase/firestore";
+import { useUserProfile } from "@/lib/hooks/useUserProfile";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -12,6 +13,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 export default function DashboardPage() {
   const router = useRouter();
   const { user, setUser, setLoading } = useAuthStore();
+  const { profile } = useUserProfile();
   const [userGroups, setUserGroups] = useState<Group[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(true);
 
@@ -64,7 +66,11 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-primary font-heading">Co-Study</h1>
             <div className="flex items-center gap-4">
               <ThemeToggle />
-              <span className="text-gray-700 dark:text-gray-300">{user.email}</span>
+              <Link href="/profile">
+                <span className="text-gray-700 dark:text-gray-300 hover:underline cursor-pointer">
+                  {profile?.name || user.displayName || user.email?.split("@")[0] || "User"}
+                </span>
+              </Link>
               <Button
                 variant="outline"
                 onClick={async () => {
@@ -116,6 +122,13 @@ export default function DashboardPage() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Link href="/profile">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 dark:border-gray-700">
+                <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">👤 Profile</h3>
+                <p className="text-gray-600 dark:text-gray-400">View and edit your profile</p>
+              </div>
+            </Link>
+
             <Link href="/groups">
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 dark:border-gray-700">
                 <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">👥 Groups</h3>

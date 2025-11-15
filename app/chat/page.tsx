@@ -16,12 +16,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useUserProfile } from "@/lib/hooks/useUserProfile";
+import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 
 export default function ChatPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, setUser, setLoading } = useAuthStore();
+  const { profile } = useUserProfile();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [group, setGroup] = useState<Group | null>(null);
@@ -86,10 +89,12 @@ export default function ChatPage() {
     if (!newMessage.trim() || !user || !groupId) return;
 
     try {
+      const senderName = profile?.name || user.displayName || user.email?.split("@")[0] || "Anonymous";
+      
       await sendMessage(groupId, {
         text: newMessage,
         senderId: user.uid,
-        senderName: user.displayName || user.email || "Anonymous",
+        senderName: senderName,
         type: "text",
       });
       setNewMessage("");
@@ -140,7 +145,11 @@ export default function ChatPage() {
             </div>
             <div className="flex items-center gap-4">
               <ThemeToggle />
-              <span className="text-gray-700 dark:text-gray-300">{user.email}</span>
+              <Link href="/profile">
+                <span className="text-gray-700 dark:text-gray-300 hover:underline cursor-pointer">
+                  {profile?.name || user.displayName || user.email?.split("@")[0] || "User"}
+                </span>
+              </Link>
             </div>
           </div>
         </div>
