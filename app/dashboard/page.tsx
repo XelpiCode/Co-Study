@@ -141,10 +141,15 @@ export default function DashboardPage() {
               <p className="text-gray-600 dark:text-gray-400">Share and access study notes</p>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">📝 Homework</h3>
-              <p className="text-gray-600 dark:text-gray-400">Track assignments and deadlines</p>
-            </div>
+            <Link href="/todays-work" className="col-span-1 md:col-span-2 lg:col-span-3">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow cursor-pointer h-full">
+                <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">📝 Today&apos;s Work</h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Manage per-subject homework logs in a dedicated space with editing history.
+                </p>
+                <p className="text-sm text-primary mt-3">Open Today&apos;s Work →</p>
+              </div>
+            </Link>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
               <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">📅 Exams</h3>

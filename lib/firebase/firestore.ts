@@ -60,6 +60,30 @@ export interface UserProfile {
   updatedAt: Date;
 }
 
+export const DAILY_SUBJECTS = [
+  "English",
+  "Maths",
+  "Malayalam",
+  "Chemistry",
+  "Biology",
+  "Physics",
+  "S.S",
+  "AI",
+  "Assignments/Other",
+] as const;
+
+export type DailySubject = (typeof DAILY_SUBJECTS)[number];
+
+export interface DailyWorkEntry {
+  id?: string;
+  date: Timestamp;
+  subject: DailySubject;
+  topics: string;
+  postedBy: string;
+  postedAt: Timestamp;
+  type: "today";
+}
+
 // Messages
 export const sendMessage = async (
   groupId: string,
@@ -280,4 +304,61 @@ export async function updateUserProfile(
     { merge: true }
   );
 }
+
+const normalizeDate = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+export const listenToDailyWork = (
+  groupId: string,
+  callback: (entries: DailyWorkEntry[]) => void,
+  maxEntries = 100
+) => {
+  checkDb();
+  const dailyWorkRef = collection(db!, "groups", groupId, "dailyWork");
+  const q = query(dailyWorkRef, orderBy("postedAt", "desc"), limit(maxEntries));
+
+  return onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
+    const entries: DailyWorkEntry[] = [];
+    snapshot.forEach((doc) => {
+      entries.push({
+        id: doc.id,
+        ...doc.data(),
+      } as DailyWorkEntry);
+    });
+    callback(entries);
+  });
+};
+
+export const addDailyWorkEntries = async (
+  groupId: string,
+  entries: Array<{ subject: DailySubject; topics: string; postedBy: string }>
+) => {
+  checkDb();
+  const now = new Date();
+  const dateValue = Timestamp.fromDate(normalizeDate(now));
+  const postedAt = Timestamp.fromDate(now);
+  const dailyWorkRef = collection(db!, "groups", groupId, "dailyWork");
+
+  await Promise.all(
+    entries.map((entry) =>
+      addDoc(dailyWorkRef, {
+        date: dateValue,
+        subject: entry.subject,
+        topics: entry.topics,
+        postedBy: entry.postedBy,
+        postedAt,
+        type: "today",
+      })
+    )
+  );
+};
+
+export const updateDailyWorkEntry = async (
+  groupId: string,
+  entryId: string,
+  updates: Partial<Pick<DailyWorkEntry, "subject" | "topics">>
+) => {
+  checkDb();
+  const entryRef = doc(db!, "groups", groupId, "dailyWork", entryId);
+  await updateDoc(entryRef, updates);
+};
 
