@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
 import Link from "next/link";
+import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 
 function ChatContent() {
@@ -183,11 +184,17 @@ function ChatContent() {
                         </p>
                       )}
                       {message.type === "image" && message.fileURL ? (
-                        <img
-                          src={message.fileURL}
-                          alt="Shared image"
-                          className="max-w-full rounded mb-2"
-                        />
+                        <div className="relative w-full max-w-md mb-2 rounded overflow-hidden">
+                          <Image
+                            src={message.fileURL}
+                            alt="Shared image"
+                            width={800}
+                            height={600}
+                            className="rounded"
+                            style={{ width: "100%", height: "auto" }}
+                            unoptimized
+                          />
+                        </div>
                       ) : message.type === "file" && message.fileURL ? (
                         <a
                           href={message.fileURL}
