@@ -107,7 +107,7 @@ export default function NotificationsPage() {
               category,
             };
           })
-          .filter((reminder): reminder is ExamReminder => reminder !== null);
+          .filter((reminder): reminder is NonNullable<typeof reminder> => reminder !== null) as ExamReminder[];
         setReminders(remindersWithMeta);
       } catch (error) {
         console.error("Error loading reminders:", error);

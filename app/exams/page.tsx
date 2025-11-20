@@ -96,7 +96,7 @@ export default function ExamsPage() {
     try {
       setSubmitting(true);
       await addExam(selectedGroupId, {
-        subject: formState.subject.trim(),
+        subject: formState.subject,
         topics: formState.topics.trim(),
         examDate: Timestamp.fromDate(new Date(formState.examDate)),
         reminderFrequency: "daily",
