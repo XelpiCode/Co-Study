@@ -47,6 +47,12 @@ export default function DashboardPage() {
     loadUserGroups();
   }, [user]);
 
+  const cardBaseClasses =
+    "bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow cursor-pointer p-6 h-full flex flex-col gap-2";
+  const cardDescriptionClasses = "text-gray-600 dark:text-gray-400 truncate";
+  const cardActionClasses = "text-sm text-primary mt-3";
+  const placeholderActionClasses = "text-sm mt-3 text-transparent select-none";
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -66,6 +72,11 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-primary font-heading">Co-Study</h1>
             <div className="flex items-center gap-4">
               <ThemeToggle />
+              <Link href="/notifications">
+                <span className="text-gray-700 dark:text-gray-300 hover:underline cursor-pointer">
+                  Notifications
+                </span>
+              </Link>
               <Link href="/profile">
                 <span className="text-gray-700 dark:text-gray-300 hover:underline cursor-pointer">
                   {profile?.name || user.displayName || user.email?.split("@")[0] || "User"}
@@ -102,9 +113,10 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {userGroups.map((group) => (
                   <Link key={group.id} href={`/chat?groupId=${group.id}`}>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 dark:border-gray-700">
-                      <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">💬 {group.name} Chat</h3>
-                      <p className="text-gray-600 dark:text-gray-400">Real-time messaging with {group.name}</p>
+                    <div className={cardBaseClasses}>
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">💬 {group.name} Chat</h3>
+                      <p className={cardDescriptionClasses}>Real-time messaging with {group.name}</p>
+                      <span className={placeholderActionClasses}>placeholder</span>
                     </div>
                   </Link>
                 ))}
@@ -121,44 +133,61 @@ export default function DashboardPage() {
             </div>
           )}
 
+          <div className="border-t border-gray-200 dark:border-gray-700 my-10" />
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Link href="/profile">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 dark:border-gray-700">
+              <div className={cardBaseClasses}>
                 <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">👤 Profile</h3>
-                <p className="text-gray-600 dark:text-gray-400">View and edit your profile</p>
+                <p className={cardDescriptionClasses}>View and edit your profile</p>
+                <span className={placeholderActionClasses}>placeholder</span>
               </div>
             </Link>
 
             <Link href="/groups">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 dark:border-gray-700">
+              <div className={cardBaseClasses}>
                 <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">👥 Groups</h3>
-                <p className="text-gray-600 dark:text-gray-400">Browse and manage your study groups</p>
+                <p className={cardDescriptionClasses}>Browse and manage your study groups</p>
+                <span className={placeholderActionClasses}>placeholder</span>
               </div>
             </Link>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">📚 Notes</h3>
-              <p className="text-gray-600 dark:text-gray-400">Share and access study notes</p>
-            </div>
+            <Link href="/notes">
+              <div className={cardBaseClasses}>
+                <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">📚 Notes</h3>
+                <p className={cardDescriptionClasses}>Share and access study notes</p>
+                <p className={cardActionClasses}>View notes →</p>
+              </div>
+            </Link>
 
-            <Link href="/todays-work" className="col-span-1 md:col-span-2 lg:col-span-3">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow cursor-pointer h-full">
+            <Link href="/todays-work">
+              <div className={cardBaseClasses}>
                 <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">📝 Today&apos;s Work</h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Manage per-subject homework logs in a dedicated space with editing history.
-                </p>
-                <p className="text-sm text-primary mt-3">Open Today&apos;s Work →</p>
+                <p className={cardDescriptionClasses}>Manage homework logs with editing history</p>
+                <p className={cardActionClasses}>Open Today&apos;s Work →</p>
               </div>
             </Link>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">📅 Exams</h3>
-              <p className="text-gray-600 dark:text-gray-400">View exam schedule and countdown</p>
-            </div>
+            <Link href="/exams">
+              <div className={cardBaseClasses}>
+                <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">📅 Exams</h3>
+                <p className={cardDescriptionClasses}>View exam schedule and countdown</p>
+                <p className={cardActionClasses}>Open Exam Planner →</p>
+              </div>
+            </Link>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+            <Link href="/notifications">
+              <div className={cardBaseClasses}>
+                <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">🔔 Notifications</h3>
+                <p className={cardDescriptionClasses}>Daily reminders for each class</p>
+                <p className={cardActionClasses}>View reminders →</p>
+              </div>
+            </Link>
+
+            <div className={`${cardBaseClasses} cursor-default`}>
               <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">📊 Study Planner</h3>
-              <p className="text-gray-600 dark:text-gray-400">Plan and track your study schedule</p>
+              <p className={cardDescriptionClasses}>Plan and track your study schedule</p>
+              <span className={placeholderActionClasses}>placeholder</span>
             </div>
           </div>
         </div>

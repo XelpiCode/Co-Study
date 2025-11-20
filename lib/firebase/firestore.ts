@@ -39,6 +39,17 @@ export interface Message {
   fileName?: string;
 }
 
+export interface Exam {
+  id?: string;
+  groupId: string;
+  subject: DailySubject;
+  topics: string;
+  examDate: Timestamp;
+  reminderFrequency: "daily" | "none";
+  createdBy: string;
+  createdAt: Timestamp;
+}
+
 export interface Group {
   id?: string;
   name: string;
@@ -246,6 +257,76 @@ export const checkGroupExists = async (classGrade: string, division: string): Pr
   );
   const querySnapshot = await getDocs(q);
   return !querySnapshot.empty;
+};
+
+// Exams
+export const listenToExams = (
+  groupId: string,
+  callback: (exams: Exam[]) => void
+) => {
+  checkDb();
+  const examsRef = collection(db!, "groups", groupId, "exams");
+  const q = query(examsRef, orderBy("examDate", "asc"));
+
+  return onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
+    const exams: Exam[] = [];
+    snapshot.forEach((doc) => {
+      exams.push({ id: doc.id, ...(doc.data() as Exam) });
+    });
+    callback(exams);
+  });
+};
+
+export const addExam = async (
+  groupId: string,
+  exam: Omit<Exam, "id" | "groupId" | "createdAt">
+) => {
+  checkDb();
+  const examsRef = collection(db!, "groups", groupId, "exams");
+  return await addDoc(examsRef, {
+    ...exam,
+    groupId,
+    createdAt: Timestamp.now(),
+  });
+};
+
+export const deleteExam = async (groupId: string, examId: string) => {
+  checkDb();
+  const examRef = doc(db!, "groups", groupId, "exams", examId);
+  await deleteDoc(examRef);
+};
+
+export const getUpcomingExams = async (
+  groupIds: string[],
+  daysAhead = 60
+): Promise<Exam[]> => {
+  checkDb();
+  if (groupIds.length === 0) return [];
+
+  const now = new Date();
+  const horizon = new Date();
+  horizon.setDate(now.getDate() + daysAhead);
+
+  const exams: Exam[] = [];
+
+  await Promise.all(
+    groupIds.map(async (groupId) => {
+      const examsRef = collection(db!, "groups", groupId, "exams");
+      const q = query(examsRef, orderBy("examDate", "asc"));
+      const snapshot = await getDocs(q);
+      snapshot.forEach((doc) => {
+        const data = doc.data() as Exam;
+        const examDate = data.examDate.toDate();
+        if (examDate >= now && examDate <= horizon) {
+          exams.push({ id: doc.id, ...data });
+        }
+      });
+    })
+  );
+
+  return exams.sort(
+    (a, b) => a.examDate.toDate().getTime() - b.examDate.toDate().getTime()
+  );
 };
 
 // User Profile Functions
