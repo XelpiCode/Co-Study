@@ -11,8 +11,7 @@ import {
   type Message,
   type Group,
 } from "@/lib/firebase/firestore";
-// File upload temporarily disabled - Storage not configured
-// import { uploadImage, uploadPDF } from "@/lib/firebase/storage";
+import { uploadImage, uploadPDF } from "@/lib/firebase/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -20,6 +19,8 @@ import { useUserProfile } from "@/lib/hooks/useUserProfile";
 import Link from "next/link";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
+
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
 function ChatContent() {
   const router = useRouter();
@@ -30,7 +31,10 @@ function ChatContent() {
   const [newMessage, setNewMessage] = useState("");
   const [group, setGroup] = useState<Group | null>(null);
   const [loadingGroup, setLoadingGroup] = useState(true);
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const groupId = searchParams.get("groupId");
 
   useEffect(() => {
@@ -87,9 +91,10 @@ function ChatContent() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !user || !groupId) return;
+    if (!newMessage.trim() || !user || !groupId || sendingMessage) return;
 
     try {
+      setSendingMessage(true);
       const senderName = profile?.name || user.displayName || user.email?.split("@")[0] || "Anonymous";
       
       await sendMessage(groupId, {
@@ -101,13 +106,57 @@ function ChatContent() {
       setNewMessage("");
     } catch (error) {
       console.error("Error sending message:", error);
+    } finally {
+      setSendingMessage(false);
     }
   };
 
-  // File upload temporarily disabled
-  // const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   // Implementation disabled - Storage not configured
-  // };
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+
+    if (!user || !groupId) {
+      console.warn("Missing user or group information for upload.");
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      window.alert("File must be 5MB or smaller.");
+      return;
+    }
+
+    const isImage = file.type.startsWith("image/");
+    const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+
+    if (!isImage && !isPDF) {
+      window.alert("Only image or PDF files can be uploaded.");
+      return;
+    }
+
+    try {
+      setUploadingFile(true);
+      const senderName = profile?.name || user.displayName || user.email?.split("@")[0] || "Anonymous";
+
+      const downloadURL = isImage
+        ? await uploadImage(file, user.uid, groupId)
+        : await uploadPDF(file, user.uid, groupId);
+
+      await sendMessage(groupId, {
+        text: isImage ? "Shared an image" : file.name,
+        senderId: user.uid,
+        senderName,
+        type: isImage ? "image" : "file",
+        fileURL: downloadURL,
+        fileName: file.name,
+      });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      window.alert("Something went wrong while uploading. Please try again.");
+    } finally {
+      setUploadingFile(false);
+    }
+  };
 
   if (!user || loadingGroup) {
     return (
@@ -185,6 +234,9 @@ function ChatContent() {
                       )}
                       {message.type === "image" && message.fileURL ? (
                         <div className="relative w-full max-w-md mb-2 rounded overflow-hidden">
+                          {message.fileName && (
+                            <p className="text-xs mb-2 opacity-80">{message.fileName}</p>
+                          )}
                           <Image
                             src={message.fileURL}
                             alt="Shared image"
@@ -202,7 +254,7 @@ function ChatContent() {
                           rel="noopener noreferrer"
                           className="underline hover:opacity-80"
                         >
-                          {message.text}
+                          {message.fileName || message.text}
                         </a>
                       ) : (
                         <p className="whitespace-pre-wrap">{message.text}</p>
@@ -225,16 +277,34 @@ function ChatContent() {
           )}
         </div>
 
-        <form onSubmit={handleSendMessage} className="flex gap-2">
+        <form onSubmit={handleSendMessage} className="flex flex-col gap-2 sm:flex-row">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,application/pdf"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type a message..."
             className="flex-1"
+            disabled={sendingMessage}
           />
-          <Button type="submit" disabled={!newMessage.trim()}>
-            Send
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingFile}
+            >
+              {uploadingFile ? "Uploading..." : "Upload"}
+            </Button>
+            <Button type="submit" disabled={!newMessage.trim() || sendingMessage}>
+              {sendingMessage ? "Sending..." : "Send"}
+            </Button>
+          </div>
         </form>
       </div>
     </div>

@@ -35,10 +35,7 @@ if (typeof window !== "undefined") {
       app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
       auth = getAuth(app);
       db = getFirestore(app);
-      // Storage is optional - only initialize if storageBucket is configured
-      if (firebaseConfig.storageBucket) {
-        storage = getStorage(app);
-      }
+      storage = getStorage(app);
     } catch (error) {
       console.error("Firebase initialization error:", error);
     }
