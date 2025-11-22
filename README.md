@@ -150,6 +150,80 @@ A cross-platform web application that centralizes study resources, enables real-
   - Group-based access control
   - Date-based organization and filtering
 
+### 7. Exam Management System ✅
+- ✅ **Exam Scheduling**:
+  - Group-based exam scheduling per class
+  - Subject selection with CBSE subjects
+  - Exam date selection with date picker
+  - Topics/chapters tracking per exam
+  - Created by any group member
+- ✅ **Exam Countdown**:
+  - Real-time countdown showing days remaining until exam
+  - Dynamic reminder messages based on days left
+  - "Happening today" indicator for same-day exams
+  - Color-coded urgency indicators
+- ✅ **Exam Display**:
+  - List view of all upcoming exams per group
+  - Group selector to filter exams by class
+  - Exam details: subject, date, topics
+  - Real-time updates via Firestore listeners
+- ✅ **UI Components**:
+  - Dedicated Exams page (`/exams`)
+  - Form to add new exams
+  - Upcoming exams list with countdown
+  - Group-based filtering
+- ✅ **Technical Implementation**:
+  - Firestore subcollection: `groups/{groupId}/exams/{examId}`
+  - Real-time synchronization across all devices
+  - Group-based access control
+  - Date-based filtering and sorting
+
+### 8. Smart Notifications System ✅
+- ✅ **Exam Reminders**:
+  - Daily prep reminders for upcoming exams
+  - Categorized by urgency: Tomorrow, This Week, This Month
+  - Automatic grouping and prioritization
+  - Exam details with subject, date, and topics
+- ✅ **Notification Display**:
+  - Dedicated Notifications page (`/notifications`)
+  - Grouped reminders by time category
+  - Color-coded badges (red for tomorrow, yellow for this week, blue for this month)
+  - Exam countdown and date information
+  - Group context for each reminder
+- ✅ **Smart Filtering**:
+  - Shows only relevant exams (within 45 days)
+  - Filters by user's joined groups
+  - Automatic categorization based on exam date
+- ✅ **UI Components**:
+  - Notification cards with exam details
+  - Refresh functionality
+  - Empty state handling
+  - Link to Exams page for scheduling
+- ✅ **Technical Implementation**:
+  - Aggregates exams from all user groups
+  - Uses date-fns for date calculations
+  - Real-time updates when exams are added/modified
+
+### 9. User Profile Management ✅
+- ✅ **Profile Display**:
+  - View user profile information
+  - Display name, email, and class grade
+  - Profile page (`/profile`)
+- ✅ **Profile Editing**:
+  - Edit user name with inline editing
+  - Save/cancel functionality
+  - Real-time profile updates
+  - Error handling for failed updates
+- ✅ **UI Components**:
+  - Clean profile page layout
+  - Edit button for name field
+  - Form validation
+  - Loading states
+- ✅ **Technical Implementation**:
+  - Firestore user profile collection
+  - Profile update functions
+  - Real-time profile synchronization
+
 ---
 
 ## 🔨 Currently Working On
@@ -172,7 +246,7 @@ A cross-platform web application that centralizes study resources, enables real-
 
 ## 📋 Upcoming Features
 
-### 6. Study Resources Module
+### 10. Study Resources Module
 - **NCERT Textbooks**:
   - Built-in PDF viewer for NCERT books
   - Organized by class (Math, Science, Social Studies for Class 9-10)
@@ -196,16 +270,7 @@ A cross-platform web application that centralizes study resources, enables real-
   - Fulfill requests by uploading notes
   - Notification when request is fulfilled
 
-### 7. Exam Management System
-- **Exam Calendar**:
-  - Group leaders post test/exam dates
-  - Subject, date, time, syllabus
-  - View all upcoming exams in calendar view
-  
-- **Exam Countdown**:
-  - Shows days/hours until each exam
-  - Color-coded urgency (red for <3 days, yellow for <7 days)
-  
+### 11. Exam Preparation Enhancement
 - **Exam Preparation Page**:
   - Consolidated important points per exam
   - Focus areas and critical topics
@@ -218,7 +283,11 @@ A cross-platform web application that centralizes study resources, enables real-
   - Discuss difficult questions
   - Self-assessment tools
 
-### 8. Smart Study Planner
+- **Calendar View**:
+  - View all upcoming exams in calendar view
+  - Monthly/weekly calendar integration
+
+### 12. Smart Study Planner
 - **Personal Study Schedule**:
   - Create daily/weekly study plans
   - Assign topics to specific dates
@@ -234,7 +303,7 @@ A cross-platform web application that centralizes study resources, enables real-
   - Topics completed
   - Exam readiness score
 
-### 9. Rich Text & Math Support
+### 13. Rich Text & Math Support
 - **Mathematical Symbols**:
   - Basic: √, ², ³, ≥, ≤, ≠, ≈, ±
   - Advanced: ∫, ∑, ∏, ∂, ∞, π, θ
@@ -246,20 +315,19 @@ A cross-platform web application that centralizes study resources, enables real-
   - Bullet points and numbered lists
   - Code blocks for programming topics
 
-### 10. Smart Notifications
-Users receive notifications for:
-- ✅ Daily todo/study list posted
-- ✅ New homework assignment
-- ✅ Exam date announced
-- ✅ Exam countdown reminders (7 days, 3 days, 1 day before)
-- ✅ Notes request fulfilled
-- ✅ New message in group chat
-- ✅ Study planner reminder
+### 14. Enhanced Notifications
+**Additional Notification Types** (to be implemented):
+- Daily todo/study list posted
+- New homework assignment
+- Notes request fulfilled
+- New message in group chat
+- Study planner reminder
 
-**Notification Settings**:
+**Notification Settings** (to be implemented):
 - Enable/disable per notification type
 - Quiet hours
 - Notification sound customization
+- Push notifications via FCM
 
 ---
 
@@ -309,6 +377,30 @@ groups/
     - createdAt: timestamp
     - members: array of userIds
     - leaders: array of userIds
+    messages/
+      {messageId}/
+        - text: string
+        - senderId: userId
+        - senderName: string
+        - timestamp: Timestamp
+        - type: "text" | "image" | "file"
+        - fileURL: string (optional)
+        - fileName: string (optional)
+    dailyWork/
+      {workId}/
+        - subjects: array of {subject, topics, homework, tomorrowPrep}
+        - postedBy: userId
+        - postedAt: timestamp
+        - date: string (YYYY-MM-DD)
+    exams/
+      {examId}/
+        - subject: string
+        - topics: string
+        - examDate: Timestamp
+        - reminderFrequency: string
+        - createdBy: userId
+        - createdAt: Timestamp
+        - groupId: string
     
 notes/
   {noteId}/
@@ -334,28 +426,6 @@ homework/
     - postedAt: timestamp
     - completedBy: array of userIds
     
-exams/
-  {examId}/
-    - subject: string
-    - date: timestamp
-    - time: string
-    - syllabus: string
-    - type: string ("test" | "exam")
-    - postedBy: userId
-    - groupId: string
-    - prepMaterial: object
-    
-groups/
-  {groupId}/
-    messages/
-      {messageId}/
-        - text: string
-        - senderId: userId
-        - senderName: string
-        - timestamp: Timestamp
-        - type: "text" | "image" | "file"
-        - fileURL: string (optional)
-        - fileName: string (optional)
 
 studyPlans/
   {userId}/
@@ -555,5 +625,5 @@ This project is currently in development for a coding competition. After the com
 
 ---
 
-**Last Updated**: December 2024
-**Version**: 1.2.0 (MVP - Core features completed, Today's Work & Daily Coordination completed)
+**Last Updated**: January 2025
+**Version**: 1.3.0 (MVP - Core features completed, Exam Management & Notifications System completed)
