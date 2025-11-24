@@ -224,6 +224,36 @@ A cross-platform web application that centralizes study resources, enables real-
   - Profile update functions
   - Real-time profile synchronization
 
+### 10. NCERT Textbooks & Notes ✅
+- ✅ **NCERT Textbooks Access**:
+  - Complete NCERT textbooks for classes 9-12
+  - Subjects: Math, Science, Social Studies
+  - All chapters with official NCERT PDF links
+  - Organized by class and subject
+- ✅ **PDF Viewer**:
+  - Embedded PDF viewer using Google Docs Viewer proxy
+  - Fullscreen mode for better reading experience
+  - Download functionality for offline access
+  - Open in new tab option for direct access
+  - Responsive design for mobile and desktop
+- ✅ **Navigation & UI**:
+  - Class selector (9, 10, 11, 12)
+  - Subject selector with visual indicators
+  - Scrollable chapter list sidebar
+  - Chapter selection with highlighting
+  - Real-time chapter switching
+- ✅ **UI Components**:
+  - Dedicated Notes page (`/notes`)
+  - Clean, organized layout
+  - Dark mode support
+  - Loading and error states
+  - Consistent with app design system
+- ✅ **Technical Implementation**:
+  - Static data structure for NCERT books (`lib/data/ncert-books.ts`)
+  - Helper functions for filtering and accessing books
+  - Google Docs Viewer integration to bypass X-Frame-Options
+  - Future-proof structure for Firebase Storage integration
+
 ---
 
 ## 🔨 Currently Working On
@@ -246,14 +276,8 @@ A cross-platform web application that centralizes study resources, enables real-
 
 ## 📋 Upcoming Features
 
-### 10. Study Resources Module
-- **NCERT Textbooks**:
-  - Built-in PDF viewer for NCERT books
-  - Organized by class (Math, Science, Social Studies for Class 9-10)
-  - Quick chapter navigation
-  - Bookmark functionality
-  
-- **Notes Sharing**:
+### 11. Notes Sharing & Upload
+- **User Notes Upload**:
   - Upload handwritten notes as photos (JPG, PNG)
   - Upload typed notes as PDFs
   - Notes metadata:
@@ -270,7 +294,7 @@ A cross-platform web application that centralizes study resources, enables real-
   - Fulfill requests by uploading notes
   - Notification when request is fulfilled
 
-### 11. Exam Preparation Enhancement
+### 12. Exam Preparation Enhancement
 - **Exam Preparation Page**:
   - Consolidated important points per exam
   - Focus areas and critical topics
@@ -287,7 +311,7 @@ A cross-platform web application that centralizes study resources, enables real-
   - View all upcoming exams in calendar view
   - Monthly/weekly calendar integration
 
-### 12. Smart Study Planner
+### 13. Smart Study Planner
 - **Personal Study Schedule**:
   - Create daily/weekly study plans
   - Assign topics to specific dates
@@ -303,7 +327,7 @@ A cross-platform web application that centralizes study resources, enables real-
   - Topics completed
   - Exam readiness score
 
-### 13. Rich Text & Math Support
+### 14. Rich Text & Math Support
 - **Mathematical Symbols**:
   - Basic: √, ², ³, ≥, ≤, ≠, ≈, ±
   - Advanced: ∫, ∑, ∏, ∂, ∞, π, θ
@@ -315,7 +339,7 @@ A cross-platform web application that centralizes study resources, enables real-
   - Bullet points and numbered lists
   - Code blocks for programming topics
 
-### 14. Enhanced Notifications
+### 15. Enhanced Notifications
 **Additional Notification Types** (to be implemented):
 - Daily todo/study list posted
 - New homework assignment
@@ -474,13 +498,14 @@ notifications/
 - **Math**: KaTeX font (professional)
 
 ### Key Screens
-1. **Dashboard**: Overview of homework, exams, recent notes
-2. **Groups**: List of joined groups, group selector
-3. **Notes Library**: Grid/list view of all notes with filters
-4. **Study Planner**: Calendar view with tasks
-5. **Chat**: WhatsApp-like interface
-6. **Exam Prep**: Focused view per exam with countdown
-7. **Profile**: User stats, settings, preferences
+1. **Dashboard**: Overview of homework, exams, recent notes, and quick access to all features
+2. **Groups**: List of joined groups, group selector, create/join groups
+3. **Notes**: NCERT textbooks viewer with class/subject/chapter navigation and embedded PDF viewer
+4. **Today's Work**: Daily class work, homework tracking, and preparation notes
+5. **Exams**: Exam scheduling, countdown, and topic tracking
+6. **Notifications**: Daily exam reminders categorized by urgency
+7. **Chat**: WhatsApp-like real-time group messaging
+8. **Profile**: User profile display and editing
 
 ---
 
@@ -635,4 +660,4 @@ This project is currently in development for a coding competition. After the com
 ---
 
 **Last Updated**: January 2025
-**Version**: 1.3.0 (MVP - Core features completed, Exam Management & Notifications System completed)
+**Version**: 1.4.0 (MVP - Core features completed, NCERT Textbooks & Notes System completed)
