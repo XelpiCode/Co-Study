@@ -191,6 +191,7 @@ export default function NotesPage() {
           <div className="lg:col-span-3">
             {selectedChapter ? (
               <PDFViewer
+                key={`${selectedClass}-${selectedSubject}-${selectedChapter.number}`}
                 pdfUrl={selectedChapter.pdfUrl}
                 chapterName={`Class ${selectedClass} - ${selectedSubject} - Chapter ${selectedChapter.number}: ${selectedChapter.name}`}
               />

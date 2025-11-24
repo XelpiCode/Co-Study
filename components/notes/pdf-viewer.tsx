@@ -38,17 +38,17 @@ export default function PDFViewer({ pdfUrl, chapterName, className = "" }: PDFVi
 
   // Handle errors - try iframe if object fails
   const handleError = () => {
-    // Object tag failed, but we'll let the iframe fallback handle it
-    // The iframe is already in the fallback, so just mark as loaded
     setIsLoading(false);
+    setHasError(true);
+    setErrorMessage("Unable to load PDF. Try opening it in a new tab.");
   };
 
   const handleDownload = () => {
-    window.open(pdfUrl, "_blank");
+    window.open(proxyUrl || pdfUrl, "_blank");
   };
 
   const handleViewInNewTab = () => {
-    window.open(pdfUrl, "_blank");
+    window.open(proxyUrl || pdfUrl, "_blank");
   };
 
   const toggleFullscreen = () => {
@@ -120,6 +120,7 @@ export default function PDFViewer({ pdfUrl, chapterName, className = "" }: PDFVi
 
     return (
       <object
+        key={proxyUrl}
         ref={objectRef}
         data={proxyUrl}
         type="application/pdf"
@@ -130,6 +131,7 @@ export default function PDFViewer({ pdfUrl, chapterName, className = "" }: PDFVi
       >
         {/* Fallback to iframe if object tag doesn't work */}
         <iframe
+          key={`${proxyUrl}-iframe`}
           ref={iframeRef}
           src={proxyUrl}
           className="w-full h-full border-0"

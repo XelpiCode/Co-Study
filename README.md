@@ -520,6 +520,15 @@ notifications/
 
 ---
 
+## 📥 NCERT PDF Caching Workflow
+
+- Run `npm run cache:ncert` once after cloning or deploying to download every NCERT chapter PDF into `public/ncert-cache`. This ensures the Notes page always serves textbooks from your server instead of depending on the NCERT domain at runtime.
+- The `/api/pdf-proxy` endpoint now reads from the cache first and only reaches out to `ncert.nic.in` when a file is missing, writing the result back to disk automatically.
+- Production deployments must allow the server process to write to `public/ncert-cache`; otherwise, pre-run the script during build and ship the folder with your artifact.
+- `PDFViewer` consistently requests the proxied URL so chapter switches always reload the correct cached PDF and users can download the same trusted copy.
+
+---
+
 ## 🚢 Deployment Strategy
 
 ### Development

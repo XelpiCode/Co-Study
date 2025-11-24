@@ -85,6 +85,18 @@ export const DAILY_SUBJECTS = [
 
 export type DailySubject = (typeof DAILY_SUBJECTS)[number];
 
+export interface Summary {
+  id?: string;
+  userId: string;
+  prompt: string;
+  class: string;
+  subject: string;
+  chapter: string;
+  summary: string;
+  ncertReferenced: boolean;
+  createdAt: Timestamp;
+}
+
 export interface DailyWorkEntry {
   id?: string;
   date: Timestamp;
@@ -441,5 +453,41 @@ export const updateDailyWorkEntry = async (
   checkDb();
   const entryRef = doc(db!, "groups", groupId, "dailyWork", entryId);
   await updateDoc(entryRef, updates);
+};
+
+// Study summary utilities
+export const saveSummary = async (summary: Omit<Summary, "id" | "createdAt">) => {
+  checkDb();
+  const summariesRef = collection(db!, "studySummaries");
+  const docRef = await addDoc(summariesRef, {
+    ...summary,
+    createdAt: Timestamp.now(),
+  });
+  return docRef.id;
+};
+
+export const getUserSummaries = async (userId: string): Promise<Summary[]> => {
+  checkDb();
+  const summariesRef = collection(db!, "studySummaries");
+  const summariesQuery = query(
+    summariesRef,
+    where("userId", "==", userId),
+    orderBy("createdAt", "desc")
+  );
+
+  const snapshot = await getDocs(summariesQuery);
+  return snapshot.docs.map(
+    (docSnap) =>
+      ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      } as Summary)
+  );
+};
+
+export const deleteSummary = async (summaryId: string) => {
+  checkDb();
+  const summaryRef = doc(db!, "studySummaries", summaryId);
+  await deleteDoc(summaryRef);
 };
 

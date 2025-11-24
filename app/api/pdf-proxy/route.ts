@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cachePdf, getCachedPdf, hasCachedPdf } from "@/lib/server/ncert-cache";
 
 // Mark route as dynamic to avoid static generation
 export const dynamic = 'force-dynamic';
@@ -31,28 +32,40 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch the PDF from the source
-    const response = await fetch(pdfUrl, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      },
-      // Set a timeout
-      signal: AbortSignal.timeout(30000), // 30 seconds
-    });
+    let pdfBuffer: Buffer;
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: `Failed to fetch PDF: ${response.statusText}` },
-        { status: response.status }
-      );
+    if (await hasCachedPdf(pdfUrl)) {
+      pdfBuffer = await getCachedPdf(pdfUrl);
+    } else {
+      // Fetch the PDF from the source
+      const response = await fetch(pdfUrl, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+        // Set a timeout
+        signal: AbortSignal.timeout(30000), // 30 seconds
+      });
+
+      if (!response.ok) {
+        return NextResponse.json(
+          { error: `Failed to fetch PDF: ${response.statusText}` },
+          { status: response.status }
+        );
+      }
+
+      // Get the PDF data as an array buffer
+      const pdfData = await response.arrayBuffer();
+      pdfBuffer = Buffer.from(pdfData);
+
+      // Cache on disk for future requests
+      await cachePdf(pdfUrl, pdfBuffer);
     }
 
-    // Get the PDF data as an array buffer
-    const pdfData = await response.arrayBuffer();
+    const responseBody = pdfBuffer as unknown as BodyInit;
 
     // Return the PDF with proper headers
-    return new NextResponse(pdfData, {
+    return new NextResponse(responseBody, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
@@ -60,6 +73,7 @@ export async function GET(request: NextRequest) {
         "Cache-Control": "public, max-age=3600", // Cache for 1 hour
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET",
+        "Content-Length": pdfBuffer.length.toString(),
       },
     });
   } catch (error) {
