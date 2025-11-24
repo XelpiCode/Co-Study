@@ -26,6 +26,12 @@ export default function NotesPage() {
   const [selectedClass, setSelectedClass] = useState<string>("9");
   const [selectedSubject, setSelectedSubject] = useState<"Math" | "Science" | "Social Studies">("Math");
   const [selectedChapter, setSelectedChapter] = useState<NCERTChapter | null>(null);
+  const [chapterMetadata, setChapterMetadata] = useState<Record<
+    number,
+    { derivedTitle: string; defaultName: string }
+  >>({});
+  const [isChapterMetadataLoading, setIsChapterMetadataLoading] = useState(false);
+  const [chapterMetadataError, setChapterMetadataError] = useState<string | null>(null);
 
   const availableClasses = useMemo(() => getAvailableClasses(), []);
   const availableSubjects = useMemo(
@@ -55,6 +61,8 @@ export default function NotesPage() {
   useEffect(() => {
     // Reset selected chapter when class or subject changes
     setSelectedChapter(null);
+    setChapterMetadata({});
+    setChapterMetadataError(null);
     // Ensure selected subject is available for the new class
     if (selectedSubject && !availableSubjects.includes(selectedSubject)) {
       setSelectedSubject(availableSubjects[0] || "Math");
@@ -67,6 +75,47 @@ export default function NotesPage() {
       setSelectedChapter(selectedBook.chapters[0]);
     }
   }, [selectedBook, selectedChapter]);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!selectedBook) return;
+
+    const fetchMetadata = async () => {
+      setIsChapterMetadataLoading(true);
+      setChapterMetadataError(null);
+      try {
+        const params = new URLSearchParams({ class: selectedClass, subject: selectedSubject });
+        const response = await fetch(`/api/ncert/chapters?${params.toString()}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to fetch chapter metadata");
+        }
+        const data = await response.json();
+        if (!isMounted) return;
+        const metadataRecord: Record<number, { derivedTitle: string; defaultName: string }> = {};
+        for (const chapter of data.chapters || []) {
+          metadataRecord[chapter.number] = {
+            derivedTitle: chapter.derivedTitle,
+            defaultName: chapter.defaultName,
+          };
+        }
+        setChapterMetadata(metadataRecord);
+      } catch (error) {
+        if (isMounted) {
+          setChapterMetadataError(error instanceof Error ? error.message : "Unable to load chapter names");
+        }
+      } finally {
+        if (isMounted) {
+          setIsChapterMetadataLoading(false);
+        }
+      }
+    };
+
+    fetchMetadata();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedBook, selectedClass, selectedSubject]);
 
   if (!user) {
     return (
@@ -167,6 +216,12 @@ export default function NotesPage() {
                 <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
                   Chapters ({selectedBook.chapters.length})
                 </label>
+                {isChapterMetadataLoading && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">Syncing chapter titles…</p>
+                )}
+                {chapterMetadataError && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mb-2">{chapterMetadataError}</p>
+                )}
                 <div className="max-h-[500px] overflow-y-auto space-y-1">
                   {selectedBook.chapters.map((chapter) => (
                     <button
@@ -178,8 +233,12 @@ export default function NotesPage() {
                           : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                       }`}
                     >
-                      <span className="font-medium">Ch {chapter.number}:</span>{" "}
-                      <span className="text-xs">{chapter.name}</span>
+                      <span className="block text-xs font-semibold uppercase">
+                        Ch {chapter.number}
+                      </span>
+                      <span className="text-xs">
+                        {chapterMetadata[chapter.number]?.derivedTitle || chapter.name}
+                      </span>
                     </button>
                   ))}
                 </div>
