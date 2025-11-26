@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateText, generateTextWithImage } from "@/lib/ai/gemini";
+import { generateText } from "@/lib/ai/openai";
 import { getNCERTTextForTopic } from "@/lib/ai/ncert-extractor";
 import { searchCBSEResources, formatSearchResultsForAI } from "@/lib/ai/search";
 
@@ -10,6 +10,7 @@ interface SummaryRequest {
   prompt: string;
   class: string;
   subject?: string;
+  chapter?: string;
   imageData?: string;
   imageMimeType?: string;
 }
@@ -88,8 +89,6 @@ async function generateSummary(
   subject: "Math" | "Science" | "Social Studies",
   ncertText: string | null,
   searchResults: string,
-  imageData?: string,
-  imageMimeType?: string
 ): Promise<string> {
   const systemPrompt = `You are an expert CBSE tutor helping a Class ${classNum} student learn ${subject}. Your task is to create a comprehensive, easy-to-understand study summary.
 
@@ -134,12 +133,9 @@ Generate a comprehensive study summary with the following structure:
 [Bullet points for quick review]`;
 
   try {
-    if (imageData && imageMimeType) {
-      // Use multimodal model if image is provided
-      return await generateTextWithImage(systemPrompt, imageData, imageMimeType);
-    } else {
-      return await generateText(systemPrompt);
-    }
+    // Image uploads are currently ignored by the ChatGPT backend, but the
+    // route still accepts them so the existing UI keeps working.
+    return await generateText(systemPrompt);
   } catch (error) {
     console.error("Error generating summary:", error);
     throw new Error("Failed to generate study summary");
@@ -152,6 +148,7 @@ export async function POST(request: NextRequest) {
     const prompt = formData.get("prompt") as string;
     const classNum = formData.get("class") as string;
     const subject = formData.get("subject") as string | null;
+    const manualChapter = formData.get("chapter") as string | null;
     const imageFile = formData.get("image") as File | null;
 
     if (!prompt || !classNum) {
@@ -173,7 +170,8 @@ export async function POST(request: NextRequest) {
 
     // Step 1: Identify subject and chapter
     let identifiedSubject: "Math" | "Science" | "Social Studies" | null = null;
-    let chapterName = prompt;
+    // Prefer an explicitly selected chapter if the user chose one
+    let chapterName = manualChapter && manualChapter.trim().length > 0 ? manualChapter : prompt;
 
     if (subject && subject.trim()) {
       // Use provided subject if available - normalize it
@@ -195,7 +193,7 @@ export async function POST(request: NextRequest) {
       console.log(`Subject provided: "${subject}" -> normalized: "${normalizedSubject}" -> mapped: ${identifiedSubject}`);
     }
 
-    if (!identifiedSubject) {
+    if (!identifiedSubject && !manualChapter) {
       console.log("Subject not provided or not recognized, attempting AI identification...");
       // Auto-identify using AI
       try {
@@ -210,17 +208,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (!identifiedSubject) {
-      return NextResponse.json(
-        {
-          error: "Could not identify subject. Please specify the subject (Math, Science, or Social Studies).",
-          identifiedSubject: null,
-          debug: {
-            providedSubject: subject,
-            prompt: prompt,
-          },
-        },
-        { status: 400 }
+      // If we still couldn't confidently identify a subject (for example,
+      // for English or AI topics), fall back to a generic bucket so that
+      // the AI summary can still be generated using general knowledge.
+      console.warn(
+        "Could not confidently identify subject from prompt; falling back to Social Studies for AI-only summary.",
       );
+      identifiedSubject = "Social Studies";
     }
 
     // Step 2: Get NCERT text (non-blocking - continue even if it fails)
@@ -231,7 +225,8 @@ export async function POST(request: NextRequest) {
       const ncertData = await getNCERTTextForTopic(classNum, identifiedSubject, chapterName);
       if (ncertData) {
         ncertText = ncertData.text;
-        ncertChapter = `${ncertData.chapter.name} (Chapter ${ncertData.chapter.number})`;
+        // NCERTChapterRecord uses "title" rather than "name"
+        ncertChapter = `${ncertData.chapter.title} (Chapter ${ncertData.chapter.number})`;
         console.log(`Successfully fetched NCERT text for chapter: ${ncertChapter}`);
       } else {
         console.log("No matching NCERT chapter found");
@@ -252,25 +247,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 4: Generate summary
-    console.log("Generating summary with Gemini AI...");
+    console.log("Generating summary with ChatGPT (OpenAI)...");
     let summary: string;
     try {
-      summary = await generateSummary(
-        prompt,
-        classNum,
-        identifiedSubject,
-        ncertText,
-        searchResults,
-        imageData,
-        imageMimeType
-      );
-      console.log("Summary generated successfully");
+      summary = await generateSummary(prompt, classNum, identifiedSubject, ncertText, searchResults);
+      console.log("Summary generated successfully with ChatGPT");
     } catch (error) {
-      console.error("Error generating summary with Gemini:", error);
+      console.error("Error generating summary with ChatGPT:", error);
       throw new Error(
         error instanceof Error 
           ? `Failed to generate summary: ${error.message}` 
-          : "Failed to generate summary. Please check if Gemini API key is configured."
+          : "Failed to generate summary. Please check if OPENAI_API_KEY is configured."
       );
     }
 

@@ -251,11 +251,6 @@ export default function NotesPage() {
             {optionsError}
           </div>
         )}
-        {options?.source === "static" && !optionsError && (
-          <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 dark:border-yellow-900 dark:bg-yellow-950 dark:text-yellow-100">
-            Firebase admin credentials are missing. Showing bundled NCERT dataset.
-          </div>
-        )}
 
         <div className="mb-8">
           <h2 className="text-3xl font-bold font-heading text-gray-900 dark:text-white">

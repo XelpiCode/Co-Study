@@ -16,6 +16,7 @@
     "date-fns": "^3.3.1",
     "firebase": "^11.10.0",
     "firebase-admin": "^13.6.0",
+    "openai": "^4.67.0",
     "dotenv": "^16.4.5",
     "katex": "^0.16.9",
     "lucide-react": "^0.344.0",

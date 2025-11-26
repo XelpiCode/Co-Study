@@ -16,12 +16,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validate that the URL is from ncert.nic.in for security
+    // Validate that the URL is from an allowed host for security
     try {
       const url = new URL(pdfUrl);
-      if (!url.hostname.includes("ncert.nic.in")) {
+      const hostname = url.hostname.toLowerCase();
+
+      const isNCERT = hostname.includes("ncert.nic.in");
+      const isFirebaseStorage =
+        hostname.endsWith("firebasestorage.googleapis.com") ||
+        hostname.endsWith("storage.googleapis.com");
+
+      if (!isNCERT && !isFirebaseStorage) {
         return NextResponse.json(
-          { error: "Only NCERT PDFs are allowed" },
+          { error: "Only NCERT or Firebase Storage PDFs are allowed" },
           { status: 403 }
         );
       }

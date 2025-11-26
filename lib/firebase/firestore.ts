@@ -458,7 +458,9 @@ export const updateDailyWorkEntry = async (
 // Study summary utilities
 export const saveSummary = async (summary: Omit<Summary, "id" | "createdAt">) => {
   checkDb();
-  const summariesRef = collection(db!, "studySummaries");
+  // Store summaries under the user's profile document for easier scoping:
+  // users/{userId}/studySummaries/{summaryId}
+  const summariesRef = collection(db!, "users", summary.userId, "studySummaries");
   const docRef = await addDoc(summariesRef, {
     ...summary,
     createdAt: Timestamp.now(),
@@ -468,12 +470,8 @@ export const saveSummary = async (summary: Omit<Summary, "id" | "createdAt">) =>
 
 export const getUserSummaries = async (userId: string): Promise<Summary[]> => {
   checkDb();
-  const summariesRef = collection(db!, "studySummaries");
-  const summariesQuery = query(
-    summariesRef,
-    where("userId", "==", userId),
-    orderBy("createdAt", "desc")
-  );
+  const summariesRef = collection(db!, "users", userId, "studySummaries");
+  const summariesQuery = query(summariesRef, orderBy("createdAt", "desc"));
 
   const snapshot = await getDocs(summariesQuery);
   return snapshot.docs.map(
@@ -481,13 +479,13 @@ export const getUserSummaries = async (userId: string): Promise<Summary[]> => {
       ({
         id: docSnap.id,
         ...docSnap.data(),
-      } as Summary)
+      } as Summary),
   );
 };
 
-export const deleteSummary = async (summaryId: string) => {
+export const deleteSummary = async (userId: string, summaryId: string) => {
   checkDb();
-  const summaryRef = doc(db!, "studySummaries", summaryId);
+  const summaryRef = doc(db!, "users", userId, "studySummaries", summaryId);
   await deleteDoc(summaryRef);
 };
 

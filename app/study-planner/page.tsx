@@ -1,16 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { getCurrentUser } from "@/lib/firebase/auth";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
-import { saveSummary, getUserSummaries, deleteSummary, type Summary } from "@/lib/firebase/firestore";
+import {
+  saveSummary,
+  getUserSummaries,
+  deleteSummary,
+  DAILY_SUBJECTS,
+  type DailySubject,
+  type Summary,
+} from "@/lib/firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Link from "next/link";
 import { Upload, X, BookOpen, History, Trash2, RefreshCw } from "lucide-react";
+import { getAvailableClasses, getBooksBySubject, type NCERTChapter } from "@/lib/data/ncert-books";
 
 export default function StudyPlannerPage() {
   const router = useRouter();
@@ -18,7 +26,7 @@ export default function StudyPlannerPage() {
   const { profile } = useUserProfile();
   const [prompt, setPrompt] = useState("");
   const [selectedClass, setSelectedClass] = useState("");
-  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [selectedSubject, setSelectedSubject] = useState<DailySubject | "">("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -32,6 +40,32 @@ export default function StudyPlannerPage() {
   const [history, setHistory] = useState<Summary[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [selectedChapter, setSelectedChapter] = useState<string>("");
+
+  const availableClasses = useMemo(() => getAvailableClasses(), []);
+
+  const mapDailySubjectToNCERTSubject = (subject: DailySubject) => {
+    switch (subject) {
+      case "Maths":
+        return "Math" as const;
+      case "S.S":
+        return "Social Studies" as const;
+      case "Physics":
+      case "Chemistry":
+      case "Biology":
+        return "Science" as const;
+      default:
+        return null;
+    }
+  };
+
+  const availableChapters: NCERTChapter[] = useMemo(() => {
+    if (!selectedClass || !selectedSubject) return [];
+    const ncertSubject = mapDailySubjectToNCERTSubject(selectedSubject as DailySubject);
+    if (!ncertSubject) return [];
+    const book = getBooksBySubject(selectedClass, ncertSubject);
+    return book?.chapters ?? [];
+  }, [selectedClass, selectedSubject]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -54,6 +88,11 @@ export default function StudyPlannerPage() {
       setSelectedClass(classNum);
     }
   }, [profile]);
+
+  // Reset chapter when class or subject changes
+  useEffect(() => {
+    setSelectedChapter("");
+  }, [selectedClass, selectedSubject]);
 
   useEffect(() => {
     // Load history
@@ -126,6 +165,9 @@ export default function StudyPlannerPage() {
       if (selectedSubject) {
         formData.append("subject", selectedSubject);
       }
+      if (selectedChapter) {
+        formData.append("chapter", selectedChapter);
+      }
       if (imageFile) {
         formData.append("image", imageFile);
       }
@@ -192,7 +234,8 @@ export default function StudyPlannerPage() {
       return;
     }
     try {
-      await deleteSummary(summaryId);
+      if (!user) return;
+      await deleteSummary(user.uid, summaryId);
       loadHistory();
       if (summary && history.find((s) => s.id === summaryId)?.summary === summary) {
         setSummary(null);
@@ -337,11 +380,15 @@ export default function StudyPlannerPage() {
                   className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">Select class</option>
-                  <option value="9">Class 9</option>
-                  <option value="10">Class 10</option>
-                  <option value="11">Class 11</option>
-                  <option value="12">Class 12</option>
+                  {availableClasses.map((cls) => (
+                    <option key={cls} value={cls}>
+                      Class {cls}
+                    </option>
+                  ))}
                 </select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Detected from your profile if possible. Change this if you are demoing another class.
+                </p>
               </div>
 
               <div>
@@ -350,19 +397,49 @@ export default function StudyPlannerPage() {
                 </label>
                 <select
                   value={selectedSubject}
-                  onChange={(e) => setSelectedSubject(e.target.value)}
+                  onChange={(e) => setSelectedSubject(e.target.value as DailySubject | "")}
                   disabled={isGenerating}
                   className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">Auto-detect</option>
-                  <option value="Math">Math</option>
-                  <option value="Science">Science</option>
-                  <option value="Social Studies">Social Studies</option>
+                  {DAILY_SUBJECTS.map((subj) => (
+                    <option key={subj} value={subj}>
+                      {subj}
+                    </option>
+                  ))}
                 </select>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Leave empty to auto-detect from your prompt
+                  Same subject list as the Exams page. Leave empty to auto-detect from your prompt.
                 </p>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
+                Chapter (Optional)
+              </label>
+              <select
+                value={selectedChapter}
+                onChange={(e) => setSelectedChapter(e.target.value)}
+                disabled={isGenerating || !selectedClass || !selectedSubject || !availableChapters.length}
+                className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">
+                  {selectedClass && selectedSubject
+                    ? availableChapters.length
+                      ? "Let AI detect chapter automatically"
+                      : "No NCERT chapters found for this combination"
+                    : "Select class and subject first"}
+                </option>
+                {availableChapters.map((chapter) => (
+                  <option key={chapter.number} value={chapter.name}>
+                    Chapter {chapter.number}: {chapter.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Pick the exact NCERT chapter if you know it, or leave this to let AI detect it from your topic.
+              </p>
             </div>
 
             <div>

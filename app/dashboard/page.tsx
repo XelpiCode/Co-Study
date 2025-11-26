@@ -184,11 +184,17 @@ export default function DashboardPage() {
               </div>
             </Link>
 
-            <div className={`${cardBaseClasses} cursor-default`}>
-              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">📊 Study Planner</h3>
-              <p className={cardDescriptionClasses}>Plan and track your study schedule</p>
-              <span className={placeholderActionClasses}>placeholder</span>
-            </div>
+            <Link href="/study-planner">
+              <div className={cardBaseClasses}>
+                <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
+                  📊 Study Planner (AI)
+                </h3>
+                <p className={cardDescriptionClasses}>
+                  Get AI-generated key points, important questions, and NCERT-aligned summaries.
+                </p>
+                <p className={cardActionClasses}>Open AI Study Planner →</p>
+              </div>
+            </Link>
           </div>
         </div>
       </main>
