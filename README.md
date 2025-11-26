@@ -486,11 +486,11 @@ notifications/
 - **Accessible**: Good contrast, readable fonts, screen reader support
 
 ### Color Scheme
-- **Primary**: Blue (#3B82F6) - Trust, learning, focus
-- **Secondary**: Green (#10B981) - Success, completion
+- **Primary**: Vibrant blue → indigo gradient (e.g. #3B82F6 → #6366F1) for energy, focus, and a modern feel
+- **Secondary/Accents**: Emerald, violet, amber, and fuchsia tints for section cards and highlights
 - **Warning**: Orange (#F59E0B) - Upcoming deadlines
 - **Danger**: Red (#EF4444) - Urgent, overdue
-- **Neutral**: Gray scale for text and backgrounds
+- **Neutral**: Slate-based gray scale for text and layered backgrounds (light and dark)
 
 ### Typography
 - **Headings**: Inter/Poppins (bold, clear)
@@ -498,7 +498,7 @@ notifications/
 - **Math**: KaTeX font (professional)
 
 ### Key Screens
-1. **Dashboard**: Overview of homework, exams, recent notes, and quick access to all features
+1. **Dashboard**: Gradient app shell with pill labels and cards for homework, exams, AI planner, and quick navigation
 2. **Groups**: List of joined groups, group selector, create/join groups
 3. **Notes**: NCERT textbooks viewer with class/subject/chapter navigation and embedded PDF viewer
 4. **Today's Work**: Daily class work, homework tracking, and preparation notes
@@ -506,6 +506,12 @@ notifications/
 6. **Notifications**: Daily exam reminders categorized by urgency
 7. **Chat**: WhatsApp-like real-time group messaging
 8. **Profile**: User profile display and editing
+9. **AI Study Planner**: Split layout with a prompt + inputs on the left and a colorful, section-based AI study summary on the right
+
+### Visual Style for Students (Secondary & Senior Secondary)
+- Gradient **app shell** background (`sky → indigo`) with glassy `app-card` components
+- **Pill labels** to highlight class, NCERT-readiness, and AI features
+- Section-based **study summary cards** (Key Concepts, Important Definitions, Practice Questions, etc.) with distinct colors to make scanning faster for high school students
 
 ---
 

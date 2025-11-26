@@ -249,7 +249,7 @@ export default function StudyPlannerPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="app-shell flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
@@ -259,8 +259,8 @@ export default function StudyPlannerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <nav className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700">
+    <div className="app-shell">
+      <nav className="app-nav">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -284,73 +284,33 @@ export default function StudyPlannerPage() {
         </div>
       </nav>
 
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold font-heading text-gray-900 dark:text-white mb-2">
-            AI-Powered Study Summary
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Get comprehensive study summaries with NCERT references, practice questions, and key points
-          </p>
-        </div>
-
-        {/* History Button */}
-        <div className="mb-6 flex justify-between items-center">
-          <Button
-            variant="outline"
-            onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center gap-2"
-          >
-            <History className="h-4 w-4" />
-            {showHistory ? "Hide" : "Show"} History ({history.length})
-          </Button>
-        </div>
-
-        {/* History Panel */}
-        {showHistory && (
-          <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Summary History</h3>
-            {loadingHistory ? (
-              <div className="text-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              </div>
-            ) : history.length === 0 ? (
-              <p className="text-gray-600 dark:text-gray-400 text-center py-4">No summaries yet</p>
-            ) : (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {history.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => handleViewHistory(item)}
-                    className="p-3 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex items-center justify-between"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900 dark:text-white">{item.prompt}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {item.subject} • {item.chapter}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                        {item.createdAt.toDate().toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => item.id && handleDeleteHistory(item.id, e)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+      <main className="container mx-auto px-4 py-8 max-w-6xl">
+        <div className="mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h2 className="text-3xl md:text-4xl font-bold font-heading text-gray-900 dark:text-white mb-2">
+              AI Study Planner
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 max-w-xl">
+              Turn any chapter, topic, or photo of your notes into a colorful, exam-ready study plan with key
+              concepts, definitions, practice questions, and revision cards.
+            </p>
           </div>
-        )}
+          <div className="flex flex-wrap gap-2 justify-start lg:justify-end">
+            {summaryMeta && (
+              <span className="pill-label">
+                <BookOpen className="h-3 w-3" />
+                {summaryMeta.subject} • {summaryMeta.chapter}
+              </span>
+            )}
+            <span className="section-chip">🎯 CBSE focused</span>
+            <span className="section-chip">⚡ Quick revision view</span>
+          </div>
+        </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.1fr)] gap-6 items-start">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="mb-8 order-1">
+            <div className="app-card p-6 space-y-6">
             <div>
               <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
                 What do you want to learn?
@@ -491,7 +451,7 @@ export default function StudyPlannerPage() {
             <Button
               type="submit"
               disabled={isGenerating || !prompt.trim() || !selectedClass}
-              className="w-full"
+              className="w-full bg-gradient-to-r from-sky-500 via-indigo-500 to-fuchsia-500 hover:from-sky-600 hover:via-indigo-600 hover:to-fuchsia-600 text-white border-0"
             >
               {isGenerating ? (
                 <>
@@ -503,103 +463,277 @@ export default function StudyPlannerPage() {
               )}
             </Button>
           </div>
-        </form>
+          </form>
 
-        {/* Summary Display */}
-        {summary && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  Study Summary
-                </h3>
-                {summaryMeta && (
-                  <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                    <span>
-                      <BookOpen className="h-4 w-4 inline mr-1" />
-                      {summaryMeta.subject} • {summaryMeta.chapter}
-                    </span>
-                    {summaryMeta.ncertReferenced && (
-                      <span className="text-green-600 dark:text-green-400">✓ NCERT Referenced</span>
-                    )}
+          <div className="order-2">
+            {/* History Button + Panel */}
+            <div className="mb-4 flex justify-between items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowHistory(!showHistory)}
+                className="flex items-center gap-2"
+              >
+                <History className="h-4 w-4" />
+                {showHistory ? "Hide" : "Show"} History ({history.length})
+              </Button>
+            </div>
+
+            {showHistory && (
+              <div className="mb-4 app-card p-4">
+                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Summary History</h3>
+                {loadingHistory ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  </div>
+                ) : history.length === 0 ? (
+                  <p className="text-gray-600 dark:text-gray-400 text-center py-4">No summaries yet</p>
+                ) : (
+                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    {history.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => handleViewHistory(item)}
+                        className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer flex items-center justify-between gap-3"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 dark:text-white line-clamp-1">
+                            {item.prompt}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            {item.subject} • {item.chapter}
+                          </p>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">
+                            {item.createdAt.toDate().toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => item.id && handleDeleteHistory(item.id, e)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
-            </div>
-            <div className="prose dark:prose-invert max-w-none text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
-              {summary.split("\n").map((line, index) => {
-                // Handle headers
-                if (line.startsWith("### ")) {
-                  return (
-                    <h3 key={index} className="text-lg font-semibold mt-6 mb-3 text-gray-900 dark:text-white">
-                      {line.replace("### ", "")}
-                    </h3>
-                  );
-                }
-                if (line.startsWith("## ")) {
-                  return (
-                    <h2 key={index} className="text-xl font-semibold mt-8 mb-4 text-gray-900 dark:text-white">
-                      {line.replace("## ", "")}
-                    </h2>
-                  );
-                }
-                if (line.startsWith("# ")) {
-                  return (
-                    <h1 key={index} className="text-2xl font-bold mt-10 mb-5 text-gray-900 dark:text-white">
-                      {line.replace("# ", "")}
-                    </h1>
-                  );
-                }
-                // Handle bold text
-                const boldRegex = /\*\*(.+?)\*\*/g;
-                if (boldRegex.test(line)) {
-                  const parts: (string | JSX.Element)[] = [];
-                  let lastIndex = 0;
-                  let match;
-                  boldRegex.lastIndex = 0;
-                  while ((match = boldRegex.exec(line)) !== null) {
-                    if (match.index > lastIndex) {
-                      parts.push(line.substring(lastIndex, match.index));
-                    }
-                    parts.push(
-                      <strong key={`bold-${match.index}`} className="font-semibold">
-                        {match[1]}
-                      </strong>
-                    );
-                    lastIndex = match.index + match[0].length;
-                  }
-                  if (lastIndex < line.length) {
-                    parts.push(line.substring(lastIndex));
-                  }
-                  return (
-                    <p key={index} className="mb-3">
-                      {parts}
-                    </p>
-                  );
-                }
-                // Handle bullet points
-                if (line.trim().startsWith("- ") || line.trim().startsWith("• ")) {
-                  return (
-                    <li key={index} className="ml-6 mb-1 list-disc">
-                      {line.replace(/^[-•]\s/, "")}
-                    </li>
-                  );
-                }
-                // Regular paragraph
-                if (line.trim()) {
-                  return (
-                    <p key={index} className="mb-3">
-                      {line}
-                    </p>
-                  );
-                }
-                // Empty line
-                return <br key={index} />;
-              })}
-            </div>
+            )}
+
+            {/* Summary Display */}
+            {summary && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    Your Study Summary
+                  </h3>
+                  {summaryMeta && (
+                    <div className="flex flex-wrap gap-2 items-center text-xs">
+                      <span className="pill-label">
+                        <BookOpen className="h-3 w-3" />
+                        {summaryMeta.subject} • {summaryMeta.chapter}
+                      </span>
+                      {summaryMeta.ncertReferenced && (
+                        <span className="section-chip text-emerald-600 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700">
+                          ✓ NCERT matched
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <StudySummarySections summary={summary} />
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </main>
+    </div>
+  );
+}
+
+interface SummarySection {
+  title: string;
+  content: string;
+}
+
+function parseSummaryToSections(summary: string): SummarySection[] {
+  const trimmed = summary.trim();
+  if (!trimmed) return [];
+
+  // 1. If the summary uses '---' separators (like the example in the prompt)
+  if (trimmed.includes("\n---")) {
+    const rawSections = trimmed.split(/\n---+\n/g);
+    const sections: SummarySection[] = [];
+
+    for (const block of rawSections) {
+      const lines = block.split("\n");
+      const firstNonEmptyIndex = lines.findIndex((l) => l.trim().length > 0);
+      if (firstNonEmptyIndex === -1) continue;
+
+      const titleLine = lines[firstNonEmptyIndex].replace(/^#+\s*/, "").trim();
+      const contentLines = lines.slice(firstNonEmptyIndex + 1);
+      const content = contentLines.join("\n").trim();
+      if (!content) continue;
+
+      sections.push({ title: titleLine, content });
+    }
+
+    if (sections.length) return sections;
+  }
+
+  // 2. Fallback: detect markdown headings
+  const knownTitles = [
+    "Study Summary",
+    "Key Concepts",
+    "Important Definitions",
+    "Formulas/Key Points",
+    "Step-by-Step Explanation",
+    "Practice Questions",
+    "Study Tips",
+    "Quick Revision Points",
+  ];
+
+  const lines = trimmed.split("\n");
+  const indices: { index: number; title: string }[] = [];
+
+  lines.forEach((line, i) => {
+    const plain = line.replace(/^#+\s*/, "").trim();
+    if (knownTitles.includes(plain)) {
+      indices.push({ index: i, title: plain });
+    }
+  });
+
+  if (!indices.length) {
+    return [
+      {
+        title: "Study Summary",
+        content: trimmed,
+      },
+    ];
+  }
+
+  const sections: SummarySection[] = [];
+  for (let i = 0; i < indices.length; i++) {
+    const current = indices[i];
+    const next = indices[i + 1];
+    const start = current.index + 1;
+    const end = next ? next.index : lines.length;
+    const content = lines.slice(start, end).join("\n").trim();
+    if (!content) continue;
+    sections.push({ title: current.title, content });
+  }
+
+  return sections;
+}
+
+function renderRichText(content: string) {
+  const lines = content.split("\n");
+  return lines.map((line, index) => {
+    const trimmed = line.trim();
+
+    // Bullets
+    if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
+      return (
+        <li key={index} className="ml-5 mb-1 list-disc">
+          {trimmed.replace(/^[-•]\s*/, "")}
+        </li>
+      );
+    }
+
+    // Bold segments
+    const boldRegex = /\*\*(.+?)\*\*/g;
+    if (boldRegex.test(line)) {
+      const parts: (string | JSX.Element)[] = [];
+      let lastIndex = 0;
+      let match: RegExpExecArray | null;
+      boldRegex.lastIndex = 0;
+
+      while ((match = boldRegex.exec(line)) !== null) {
+        if (match.index > lastIndex) {
+          parts.push(line.substring(lastIndex, match.index));
+        }
+        parts.push(
+          <strong key={`bold-${match.index}`} className="font-semibold">
+            {match[1]}
+          </strong>,
+        );
+        lastIndex = match.index + match[0].length;
+      }
+
+      if (lastIndex < line.length) {
+        parts.push(line.substring(lastIndex));
+      }
+
+      return (
+        <p key={index} className="mb-2 text-sm leading-relaxed">
+          {parts}
+        </p>
+      );
+    }
+
+    if (trimmed) {
+      return (
+        <p key={index} className="mb-2 text-sm leading-relaxed">
+          {line}
+        </p>
+      );
+    }
+
+    return <br key={index} />;
+  });
+}
+
+function StudySummarySections({ summary }: { summary: string }) {
+  const sections = parseSummaryToSections(summary);
+
+  if (!sections.length) {
+    return (
+      <div className="app-card p-4">
+        <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{summary}</p>
+      </div>
+    );
+  }
+
+  const getAccent = (title: string) => {
+    const t = title.toLowerCase();
+    if (t.includes("key concepts")) {
+      return "from-sky-500/15 to-sky-400/10 border-sky-200/70 dark:border-sky-800/70";
+    }
+    if (t.includes("definitions")) {
+      return "from-emerald-500/15 to-emerald-400/10 border-emerald-200/70 dark:border-emerald-800/70";
+    }
+    if (t.includes("formula") || t.includes("key points")) {
+      return "from-violet-500/15 to-violet-400/10 border-violet-200/70 dark:border-violet-800/70";
+    }
+    if (t.includes("practice")) {
+      return "from-amber-500/15 to-amber-400/10 border-amber-200/70 dark:border-amber-800/70";
+    }
+    if (t.includes("tips")) {
+      return "from-rose-500/15 to-rose-400/10 border-rose-200/70 dark:border-rose-800/70";
+    }
+    if (t.includes("revision")) {
+      return "from-indigo-500/15 to-indigo-400/10 border-indigo-200/70 dark:border-indigo-800/70";
+    }
+    return "from-slate-500/10 to-slate-400/5 border-slate-200/70 dark:border-slate-800/70";
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {sections.map((section) => (
+        <div
+          key={section.title}
+          className={`rounded-2xl border bg-gradient-to-br ${getAccent(section.title)} p-4 md:p-5 shadow-sm`}
+        >
+          <h4 className="text-base font-semibold uppercase tracking-wide text-slate-800 dark:text-slate-100 mb-3">
+            {section.title}
+          </h4>
+          <div className="text-sm md:text-[0.95rem] text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+            <ul className="list-outside pl-0">{renderRichText(section.content)}</ul>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

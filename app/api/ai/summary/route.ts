@@ -92,45 +92,38 @@ async function generateSummary(
 ): Promise<string> {
   const systemPrompt = `You are an expert CBSE tutor helping a Class ${classNum} student learn ${subject}. Your task is to create a comprehensive, easy-to-understand study summary.
 
-Instructions:
-1. Use simple, student-friendly language
+Hard formatting rules (MUST follow exactly):
+- Use Markdown.
+- Start with a single line title: "Study Summary: [Topic Name]" (no leading # on this line).
+- Then add a blank line and the section "## Key Concepts".
+- Use the following section headings in this exact order:
+  1) "## Key Concepts"
+  2) "## Important Definitions"
+  3) "## Formulas/Key Points"
+  4) "## Step-by-Step Explanation"
+  5) "## Practice Questions"
+  6) "## Study Tips"
+  7) "## Quick Revision Points"
+- Put a line containing exactly three dashes --- on its own line BETWEEN each major section (like a visual divider).
+- Use normal paragraphs and "-" bullet lists inside sections, NOT extra headings.
+- Do not add any other top-level headings outside this structure.
+
+Content guidelines:
+1. Use simple, student-friendly language (Class ${classNum} level)
 2. Break down complex concepts into easy steps
 3. Include key definitions, formulas, and important points
-4. Provide practice questions similar to CBSE exam format
+4. Provide 2–3 CBSE-style practice questions with short answers
 5. Include study tips and memory aids
 6. Reference NCERT content when provided
 7. Use the additional resources to find relevant CBSE exam questions and study guides
-8. Structure your response with clear sections
 
-${ncertText ? `\nNCERT Textbook Content for this chapter:\n${ncertText.substring(0, 8000)}\n` : "\nNote: NCERT text not found. Use your knowledge of CBSE curriculum.\n"}
+${ncertText ? `NCERT Textbook Content for this chapter (truncated):\n${ncertText.substring(0, 8000)}\n` : "Note: NCERT text not found. Use your knowledge of CBSE curriculum.\n"}
 
-${searchResults ? `\n${searchResults}\n` : ""}
+${searchResults ? `Additional CBSE-related resources:\n${searchResults}\n` : ""}
 
 Student's request: "${prompt}"
 
-Generate a comprehensive study summary with the following structure:
-# Study Summary: [Topic Name]
-
-## Key Concepts
-[Main concepts explained simply]
-
-## Important Definitions
-[Key terms and definitions]
-
-## Formulas/Key Points
-[Important formulas, theorems, or key points]
-
-## Step-by-Step Explanation
-[Detailed explanation in simple steps]
-
-## Practice Questions
-[2-3 CBSE-style practice questions with brief answers]
-
-## Study Tips
-[Helpful tips for remembering and understanding]
-
-## Quick Revision Points
-[Bullet points for quick review]`;
+Now generate the study summary ONLY in the required Markdown structure described above.`;
 
   try {
     // Image uploads are currently ignored by the ChatGPT backend, but the
