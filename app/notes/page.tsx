@@ -1,48 +1,74 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/authStore";
+import { Button } from "@/components/ui/button";
+import PDFViewer from "@/components/notes/pdf-viewer";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { getCurrentUser } from "@/lib/firebase/auth";
 import { useUserProfile } from "@/lib/hooks/useUserProfile";
-import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
-import Link from "next/link";
-import PDFViewer from "@/components/notes/pdf-viewer";
-import {
-  NCERT_BOOKS,
-  getBooksByClass,
-  getBooksBySubject,
-  getAvailableClasses,
-  getAvailableSubjects,
-  type NCERTBook,
-  type NCERTChapter,
-} from "@/lib/data/ncert-books";
+import { useAuthStore } from "@/store/authStore";
+
+interface LibraryBookSummary {
+  id: string;
+  class: string;
+  subject: string;
+  subjectGroup: string;
+  subjectKey: string;
+  language: string;
+  languageKey: string;
+  title: string;
+  chapterCount: number;
+  source: string;
+}
+
+interface LibraryOptionsResponse {
+  source: string;
+  classes: Array<{
+    class: string;
+    subjects: Array<{
+      key: string;
+      label: string;
+      subjectGroup: string;
+      books: LibraryBookSummary[];
+    }>;
+  }>;
+}
+
+interface ChapterRecord {
+  id: string;
+  number: number;
+  title: string;
+  pdfUrl: string;
+  textPreview?: string | null;
+  originalPdfUrl?: string;
+  textUrl?: string | null;
+}
+
+interface ChaptersResponse {
+  source: string;
+  book: LibraryBookSummary;
+  chapters: ChapterRecord[];
+}
 
 export default function NotesPage() {
   const router = useRouter();
   const { user, setUser, setLoading } = useAuthStore();
   const { profile } = useUserProfile();
-  const [selectedClass, setSelectedClass] = useState<string>("9");
-  const [selectedSubject, setSelectedSubject] = useState<"Math" | "Science" | "Social Studies">("Math");
-  const [selectedChapter, setSelectedChapter] = useState<NCERTChapter | null>(null);
-  const [chapterMetadata, setChapterMetadata] = useState<Record<
-    number,
-    { derivedTitle: string; defaultName: string }
-  >>({});
-  const [isChapterMetadataLoading, setIsChapterMetadataLoading] = useState(false);
-  const [chapterMetadataError, setChapterMetadataError] = useState<string | null>(null);
 
-  const availableClasses = useMemo(() => getAvailableClasses(), []);
-  const availableSubjects = useMemo(
-    () => getAvailableSubjects(selectedClass),
-    [selectedClass]
-  );
+  const [options, setOptions] = useState<LibraryOptionsResponse | null>(null);
+  const [optionsLoading, setOptionsLoading] = useState(true);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
 
-  const selectedBook = useMemo(
-    () => getBooksBySubject(selectedClass, selectedSubject),
-    [selectedClass, selectedSubject]
-  );
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedSubjectKey, setSelectedSubjectKey] = useState("");
+  const [selectedBookId, setSelectedBookId] = useState("");
+  const [selectedChapterNumber, setSelectedChapterNumber] = useState<number | null>(null);
+
+  const [chaptersPayload, setChaptersPayload] = useState<ChaptersResponse | null>(null);
+  const [chaptersLoading, setChaptersLoading] = useState(false);
+  const [chaptersError, setChaptersError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -59,63 +85,125 @@ export default function NotesPage() {
   }, [router, setUser, setLoading]);
 
   useEffect(() => {
-    // Reset selected chapter when class or subject changes
-    setSelectedChapter(null);
-    setChapterMetadata({});
-    setChapterMetadataError(null);
-    // Ensure selected subject is available for the new class
-    if (selectedSubject && !availableSubjects.includes(selectedSubject)) {
-      setSelectedSubject(availableSubjects[0] || "Math");
-    }
-  }, [selectedClass, selectedSubject, availableSubjects]);
-
-  // Auto-select first chapter when book changes
-  useEffect(() => {
-    if (selectedBook && selectedBook.chapters.length > 0 && !selectedChapter) {
-      setSelectedChapter(selectedBook.chapters[0]);
-    }
-  }, [selectedBook, selectedChapter]);
-
-  useEffect(() => {
-    let isMounted = true;
-    if (!selectedBook) return;
-
-    const fetchMetadata = async () => {
-      setIsChapterMetadataLoading(true);
-      setChapterMetadataError(null);
+    const controller = new AbortController();
+    const loadOptions = async () => {
+      setOptionsLoading(true);
+      setOptionsError(null);
       try {
-        const params = new URLSearchParams({ class: selectedClass, subject: selectedSubject });
-        const response = await fetch(`/api/ncert/chapters?${params.toString()}`);
+        const response = await fetch("/api/ncert/options", { signal: controller.signal });
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || "Failed to fetch chapter metadata");
+          throw new Error(errorData.error || "Failed to load NCERT library");
         }
-        const data = await response.json();
-        if (!isMounted) return;
-        const metadataRecord: Record<number, { derivedTitle: string; defaultName: string }> = {};
-        for (const chapter of data.chapters || []) {
-          metadataRecord[chapter.number] = {
-            derivedTitle: chapter.derivedTitle,
-            defaultName: chapter.defaultName,
-          };
-        }
-        setChapterMetadata(metadataRecord);
+        const data: LibraryOptionsResponse = await response.json();
+        setOptions(data);
       } catch (error) {
-        if (isMounted) {
-          setChapterMetadataError(error instanceof Error ? error.message : "Unable to load chapter names");
+        if (!controller.signal.aborted) {
+          setOptionsError(
+            error instanceof Error ? error.message : "Unable to load NCERT library options",
+          );
         }
       } finally {
-        if (isMounted) {
-          setIsChapterMetadataLoading(false);
+        if (!controller.signal.aborted) {
+          setOptionsLoading(false);
         }
       }
     };
 
-    fetchMetadata();
-    return () => {
-      isMounted = false;
+    loadOptions();
+    return () => controller.abort();
+  }, []);
+
+  const classes = options?.classes ?? [];
+  const selectedClassEntry = useMemo(
+    () => classes.find((entry) => entry.class === selectedClass),
+    [classes, selectedClass],
+  );
+
+  useEffect(() => {
+    if (selectedClass || !classes.length) return;
+    setSelectedClass(classes[0].class);
+  }, [classes, selectedClass]);
+
+  useEffect(() => {
+    if (!selectedClassEntry) {
+      setSelectedSubjectKey("");
+      return;
+    }
+    if (!selectedClassEntry.subjects.length) {
+      setSelectedSubjectKey("");
+      return;
+    }
+    const hasSubject = selectedClassEntry.subjects.some(
+      (subject) => subject.key === selectedSubjectKey,
+    );
+    if (!hasSubject) {
+      setSelectedSubjectKey(selectedClassEntry.subjects[0].key);
+    }
+  }, [selectedClassEntry, selectedSubjectKey]);
+
+  const selectedSubjectEntry = useMemo(
+    () => selectedClassEntry?.subjects.find((subject) => subject.key === selectedSubjectKey),
+    [selectedClassEntry, selectedSubjectKey],
+  );
+
+  useEffect(() => {
+    if (!selectedSubjectEntry) {
+      setSelectedBookId("");
+      return;
+    }
+    if (!selectedSubjectEntry.books.length) {
+      setSelectedBookId("");
+      return;
+    }
+    const hasBook = selectedSubjectEntry.books.some((book) => book.id === selectedBookId);
+    if (!hasBook) {
+      setSelectedBookId(selectedSubjectEntry.books[0].id);
+    }
+  }, [selectedSubjectEntry, selectedBookId]);
+
+  useEffect(() => {
+    if (!selectedBookId) {
+      setChaptersPayload(null);
+      setSelectedChapterNumber(null);
+      return;
+    }
+    const controller = new AbortController();
+    const loadChapters = async () => {
+      setChaptersLoading(true);
+      setChaptersError(null);
+      try {
+        const response = await fetch(`/api/ncert/chapters?bookId=${selectedBookId}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to load chapters");
+        }
+        const data: ChaptersResponse = await response.json();
+        setChaptersPayload(data);
+        setSelectedChapterNumber(data.chapters[0]?.number ?? null);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setChaptersError(error instanceof Error ? error.message : "Unable to load chapters");
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setChaptersLoading(false);
+        }
+      }
     };
-  }, [selectedBook, selectedClass, selectedSubject]);
+
+    loadChapters();
+    return () => controller.abort();
+  }, [selectedBookId]);
+
+  const selectedChapter = useMemo(() => {
+    if (!chaptersPayload?.chapters || selectedChapterNumber == null) return null;
+    return (
+      chaptersPayload.chapters.find((chapter) => chapter.number === selectedChapterNumber) || null
+    );
+  }, [chaptersPayload, selectedChapterNumber]);
 
   if (!user) {
     return (
@@ -158,19 +246,28 @@ export default function NotesPage() {
       </nav>
 
       <main className="container mx-auto px-4 py-8 flex-1 w-full max-w-7xl">
+        {optionsError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+            {optionsError}
+          </div>
+        )}
+        {options?.source === "static" && !optionsError && (
+          <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 dark:border-yellow-900 dark:bg-yellow-950 dark:text-yellow-100">
+            Firebase admin credentials are missing. Showing bundled NCERT dataset.
+          </div>
+        )}
+
         <div className="mb-8">
           <h2 className="text-3xl font-bold font-heading text-gray-900 dark:text-white">
             NCERT Textbooks
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Access NCERT textbooks for Math, Science, and Social Studies (Classes 9-12)
+            Access NCERT textbooks across available classes, subjects, and languages.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar - Class and Subject Selection */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Class Selector */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4">
               <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
                 Class
@@ -179,56 +276,82 @@ export default function NotesPage() {
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
                 className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
+                disabled={optionsLoading}
               >
-                {availableClasses.map((classNum) => (
-                  <option key={classNum} value={classNum}>
-                    Class {classNum}
+                {classes.map((classEntry) => (
+                  <option key={classEntry.class} value={classEntry.class}>
+                    Class {classEntry.class}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Subject Selector */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4">
               <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
                 Subject
               </label>
               <div className="space-y-2">
-                {availableSubjects.map((subject) => (
+                {(selectedClassEntry?.subjects ?? []).map((subject) => (
                   <button
-                    key={subject}
-                    onClick={() => setSelectedSubject(subject)}
+                    key={subject.key}
+                    onClick={() => setSelectedSubjectKey(subject.key)}
                     className={`w-full text-left px-3 py-2 rounded transition-colors ${
-                      selectedSubject === subject
+                      selectedSubjectKey === subject.key
                         ? "bg-primary text-white"
                         : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                     }`}
                   >
-                    {subject}
+                    {subject.label}
                   </button>
                 ))}
+                {!selectedClassEntry?.subjects?.length && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No subjects found.</p>
+                )}
               </div>
             </div>
 
-            {/* Chapter List */}
-            {selectedBook && (
+            {selectedSubjectEntry && selectedSubjectEntry.books.length > 0 && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4">
                 <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
-                  Chapters ({selectedBook.chapters.length})
+                  Edition / Language
                 </label>
-                {isChapterMetadataLoading && (
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">Syncing chapter titles…</p>
+                <div className="space-y-2">
+                  {selectedSubjectEntry.books.map((book) => (
+                    <button
+                      key={book.id}
+                      onClick={() => setSelectedBookId(book.id)}
+                      className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
+                        selectedBookId === book.id
+                          ? "bg-primary text-white"
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      <span className="block font-semibold">{book.language}</span>
+                      <span className="text-xs opacity-80">{book.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {chaptersPayload && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4">
+                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
+                  Chapters ({chaptersPayload.chapters.length})
+                </label>
+                {chaptersLoading && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">Loading chapters…</p>
                 )}
-                {chapterMetadataError && (
-                  <p className="text-xs text-red-600 dark:text-red-400 mb-2">{chapterMetadataError}</p>
+                {chaptersError && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mb-2">{chaptersError}</p>
                 )}
                 <div className="max-h-[500px] overflow-y-auto space-y-1">
-                  {selectedBook.chapters.map((chapter) => (
+                  {chaptersPayload.chapters.map((chapter) => (
                     <button
-                      key={chapter.number}
-                      onClick={() => setSelectedChapter(chapter)}
+                      key={chapter.id}
+                      onClick={() => setSelectedChapterNumber(chapter.number)}
                       className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
-                        selectedChapter?.number === chapter.number
+                        selectedChapterNumber === chapter.number
                           ? "bg-primary text-white"
                           : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                       }`}
@@ -236,37 +359,35 @@ export default function NotesPage() {
                       <span className="block text-xs font-semibold uppercase">
                         Ch {chapter.number}
                       </span>
-                      <span className="text-xs">
-                        {chapterMetadata[chapter.number]?.derivedTitle || chapter.name}
-                      </span>
+                      <span className="text-xs">{chapter.title}</span>
                     </button>
                   ))}
+                  {!chaptersPayload.chapters.length && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No chapters available.</p>
+                  )}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Main Content - PDF Viewer */}
           <div className="lg:col-span-3">
             {selectedChapter ? (
               <PDFViewer
-                key={`${selectedClass}-${selectedSubject}-${selectedChapter.number}`}
+                key={`${selectedBookId}-${selectedChapter.number}`}
                 pdfUrl={selectedChapter.pdfUrl}
-                chapterName={`Class ${selectedClass} - ${selectedSubject} - Chapter ${selectedChapter.number}: ${selectedChapter.name}`}
+                chapterName={`Class ${selectedClass} • ${selectedSubjectEntry?.label ?? ""} • Chapter ${selectedChapter.number}: ${selectedChapter.title}`}
               />
             ) : (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-12 text-center">
                 <p className="text-gray-600 dark:text-gray-400">
-                  {selectedBook
-                    ? "Select a chapter to view"
-                    : "Select a class and subject to get started"}
+                  {optionsLoading
+                    ? "Loading NCERT library…"
+                    : selectedBookId
+                      ? "Select a chapter to view"
+                      : "Select a class and subject to begin"}
                 </p>
               </div>
             )}
           </div>
         </div>
       </main>
-    </div>
-  );
-}
-

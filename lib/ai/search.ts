@@ -1,4 +1,8 @@
-import { NCERT_BOOKS } from "@/lib/data/ncert-books";
+import {
+  getNCERTBookWithChapters,
+  resolveLegacySubjectGroup,
+  type NCERTChapterRecord,
+} from "@/lib/server/ncert-library";
 
 export interface CBSEResource {
   title: string;
@@ -15,18 +19,11 @@ const titleCase = (value: string) =>
     .map((word) => word[0].toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
 
-const findChapter = (classNum: string, subject: string, topic: string) => {
-  const book = NCERT_BOOKS.find(
-    (entry) => entry.class === classNum && entry.subject === subject,
-  );
-  if (!book) return null;
-
+const findChapter = (chapters: NCERTChapterRecord[], topic: string) => {
   const normalizedTopic = topic.toLowerCase();
-
   return (
-    book.chapters.find((chapter) =>
-      chapter.name.toLowerCase().includes(normalizedTopic),
-    ) || book.chapters[0]
+    chapters.find((chapter) => chapter.title.toLowerCase().includes(normalizedTopic)) ||
+    chapters[0]
   );
 };
 
@@ -39,12 +36,33 @@ export const searchCBSEResources = async (
   const encodedQuery = encodeURIComponent(`${topic} class ${classNum} ${subject} CBSE`);
   const resources: CBSEResource[] = [];
 
-  const chapter = findChapter(classNum, subject, topic);
-  if (chapter) {
+  try {
+    const bookData = await getNCERTBookWithChapters({
+      class: classNum,
+      subjectGroup: resolveLegacySubjectGroup(subject),
+      language: "English",
+    });
+    if (bookData?.chapters.length) {
+      const chapter = findChapter(bookData.chapters, topic);
+      if (chapter) {
+        resources.push({
+          title: `${normalizedTopic} (NCERT Chapter ${chapter.number})`,
+          url: chapter.pdfUrl,
+          snippet: "Official NCERT textbook chapter for detailed explanations and exercises.",
+          source: "NCERT",
+          type: "textbook",
+        });
+      }
+    }
+  } catch (error) {
+    console.warn("Unable to load NCERT textbook data for CBSE search:", error);
+  }
+
+  if (!resources.length) {
     resources.push({
-      title: `${normalizedTopic} (NCERT Chapter ${chapter.number})`,
-      url: chapter.pdfUrl,
-      snippet: "Official NCERT textbook chapter for detailed explanations and exercises.",
+      title: `${normalizedTopic} (NCERT Reference)`,
+      url: "https://ncert.nic.in/textbook.php",
+      snippet: "Browse the NCERT textbook library to locate the relevant chapter.",
       source: "NCERT",
       type: "textbook",
     });

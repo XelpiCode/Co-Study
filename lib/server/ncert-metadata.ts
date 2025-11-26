@@ -5,7 +5,7 @@ const titleCache = new Map<string, Promise<string>>();
 
 const slugFromUrl = (pdfUrl: string) => pdfUrl.split("/").pop() || pdfUrl;
 
-const deriveTitle = (text: string) => {
+export const deriveChapterTitle = (text: string) => {
   const lines = text
     .split(/\r?\n/)
     .map((line) => line.replace(/\s+/g, " ").trim())
@@ -26,7 +26,7 @@ const deriveTitle = (text: string) => {
 const loadTitle = async (chapter: NCERTChapter) => {
   const buffer = await getPdfBuffer(chapter.pdfUrl);
   const text = await extractPdfText(buffer, { maxPages: 1, maxChars: 1000 });
-  return deriveTitle(text);
+  return deriveChapterTitle(text);
 };
 
 export const getChapterTitle = async (chapter: NCERTChapter) => {

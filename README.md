@@ -545,12 +545,18 @@ notifications/
 
 ---
 
-## 📥 NCERT PDF Caching Workflow
+## 📥 NCERT Library Pipeline
 
-- Run `npm run cache:ncert` once after cloning or deploying to download every NCERT chapter PDF into `public/ncert-cache`. This ensures the Notes page always serves textbooks from your server instead of depending on the NCERT domain at runtime.
-- The `/api/pdf-proxy` endpoint now reads from the cache first and only reaches out to `ncert.nic.in` when a file is missing, writing the result back to disk automatically.
-- Production deployments must allow the server process to write to `public/ncert-cache`; otherwise, pre-run the script during build and ship the folder with your artifact.
-- `PDFViewer` consistently requests the proxied URL so chapter switches always reload the correct cached PDF and users can download the same trusted copy.
+- Configure Firebase Admin credentials before running locally or deploying:
+  ```
+  FIREBASE_ADMIN_PROJECT_ID=your-project-id
+  FIREBASE_ADMIN_CLIENT_EMAIL=service-account@email
+  FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+  FIREBASE_ADMIN_STORAGE_BUCKET=your-project-id.appspot.com
+  ```
+- Run `npm run scrape:ncert` once to crawl ncert.nic.in, upload every Class 9‑12 PDF (and extracted text) into Firebase Storage, and write metadata/links into Firestore.
+- Notes API routes (`/api/ncert/*`) now serve Storage download URLs when admin creds exist, so the Notes dashboard streams PDFs directly from Firebase on Vercel—no local disk writes needed.
+- If admin env vars are missing (e.g., during quick local prototyping), the app transparently falls back to the bundled static NCERT list and fetches PDFs straight from ncert.nic.in via `/api/pdf-proxy`.
 
 ---
 

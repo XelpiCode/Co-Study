@@ -1,44 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBookWithTitles } from "@/lib/server/ncert-metadata";
+import { getNCERTBookWithChapters } from "@/lib/server/ncert-library";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const classParam = searchParams.get("class");
-  const subjectParam = searchParams.get("subject");
+  const bookId = searchParams.get("bookId") || undefined;
+  const classParam = searchParams.get("class") || undefined;
+  const subjectParam = searchParams.get("subject") || undefined;
+  const subjectGroupParam = searchParams.get("subjectGroup") || undefined;
+  const subjectKeyParam = searchParams.get("subjectKey") || undefined;
+  const languageParam = searchParams.get("language") || undefined;
+  const languageKeyParam = searchParams.get("languageKey") || undefined;
 
-  if (!classParam || !subjectParam) {
+  if (!bookId && !classParam) {
     return NextResponse.json(
-      { error: "Missing required parameters: class and subject" },
+      { error: "Missing required parameters: provide either bookId or class" },
       { status: 400 },
     );
   }
 
-  const allowedSubjects = ["Math", "Science", "Social Studies"] as const;
-  if (!allowedSubjects.includes(subjectParam as (typeof allowedSubjects)[number])) {
-    return NextResponse.json({ error: "Invalid subject parameter" }, { status: 400 });
-  }
+  try {
+    const bookData = await getNCERTBookWithChapters({
+      bookId,
+      class: classParam,
+      subject: subjectParam ?? undefined,
+      subjectGroup: subjectGroupParam ?? undefined,
+      subjectKey: subjectKeyParam ?? undefined,
+      language: languageParam ?? undefined,
+      languageKey: languageKeyParam ?? undefined,
+    });
 
-  const bookData = await getBookWithTitles(
-    classParam,
-    subjectParam as (typeof allowedSubjects)[number],
-  );
+    if (!bookData) {
+      return NextResponse.json(
+        { error: "No NCERT book found for the provided criteria" },
+        { status: 404 },
+      );
+    }
 
-  if (!bookData) {
+    return NextResponse.json(bookData);
+  } catch (error) {
+    console.error("Failed to load NCERT chapters:", error);
     return NextResponse.json(
-      { error: "No NCERT book found for the provided class and subject" },
-      { status: 404 },
+      { error: "Failed to load NCERT chapters" },
+      { status: 500 },
     );
   }
-
-  return NextResponse.json({
-    book: {
-      id: bookData.book.id,
-      class: bookData.book.class,
-      subject: bookData.book.subject,
-      title: bookData.book.title,
-    },
-    chapters: bookData.chapters,
-  });
 }
 
 

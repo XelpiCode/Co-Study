@@ -1,9 +1,14 @@
-import { NCERT_BOOKS, NCERTBook, NCERTChapter } from "@/lib/data/ncert-books";
 import { getPdfBuffer, extractPdfText } from "@/lib/server/ncert-pdf";
+import {
+  getNCERTBookWithChapters,
+  resolveLegacySubjectGroup,
+  type NCERTBookRecord,
+  type NCERTChapterRecord,
+} from "@/lib/server/ncert-library";
 
 export interface NCERTExtractionResult {
-  book: NCERTBook;
-  chapter: NCERTChapter;
+  book: NCERTBookRecord;
+  chapter: NCERTChapterRecord;
   text: string;
 }
 
@@ -28,19 +33,12 @@ const getMatchScore = (chapterName: string, topic: string) => {
   return matches.length / queryWords.length;
 };
 
-const findChapter = (classNum: string, subject: string, topicName: string) => {
-  const book = NCERT_BOOKS.find(
-    (entry) => entry.class === classNum && entry.subject === subject,
-  );
-  if (!book) {
-    return null;
-  }
-
+const findChapter = (chapters: NCERTChapterRecord[], topicName: string) => {
   let bestChapter: NCERTChapter | null = null;
   let bestScore = 0;
 
-  for (const chapter of book.chapters) {
-    const score = getMatchScore(chapter.name, topicName);
+  for (const chapter of chapters) {
+    const score = getMatchScore(chapter.title, topicName);
     if (score > bestScore) {
       bestScore = score;
       bestChapter = chapter;
@@ -59,23 +57,47 @@ export const getNCERTTextForTopic = async (
   subject: "Math" | "Science" | "Social Studies",
   topicName: string,
 ): Promise<NCERTExtractionResult | null> => {
-  const result = findChapter(classNum, subject, topicName);
-  if (!result) {
+  const bookResponse = await getNCERTBookWithChapters({
+    class: classNum,
+    subjectGroup: resolveLegacySubjectGroup(subject),
+    language: "English",
+  });
+
+  if (!bookResponse?.chapters.length) {
     return null;
   }
 
-  try {
-    const buffer = await getPdfBuffer(result.chapter.pdfUrl);
-    const text = await extractPdfText(buffer, { maxPages: MAX_PAGES, maxChars: MAX_CHARS });
-    if (!text) {
-      return null;
-    }
+  const chapter = findChapter(bookResponse.chapters, topicName) ?? bookResponse.chapters[0];
+  if (!chapter) return null;
 
-    return {
-      book: result.book,
-      chapter: result.chapter,
-      text,
-    };
+  const text = await loadChapterText(chapter);
+  if (!text) return null;
+
+  return {
+    book: bookResponse.book,
+    chapter,
+    text,
+  };
+};
+
+const loadChapterText = async (chapter: NCERTChapterRecord) => {
+  if (chapter.textUrl) {
+    try {
+      const response = await fetch(chapter.textUrl, { signal: AbortSignal.timeout(30000) });
+      if (response.ok) {
+        const text = await response.text();
+        if (text?.trim()) {
+          return text;
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to load cached NCERT text, falling back to PDF:", error);
+    }
+  }
+
+  try {
+    const buffer = await getPdfBuffer(chapter.pdfUrl);
+    return extractPdfText(buffer, { maxPages: MAX_PAGES, maxChars: MAX_CHARS });
   } catch (error) {
     console.error("Failed to parse NCERT PDF:", error);
     return null;
