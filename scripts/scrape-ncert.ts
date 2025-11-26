@@ -1,10 +1,14 @@
 /* eslint-disable no-console */
+import dotenv from "dotenv";
 import crypto from "crypto";
 import { FieldValue } from "firebase-admin/firestore";
-import type { Bucket } from "firebase-admin/storage";
+import type { Storage } from "firebase-admin/storage";
 import { deriveChapterTitle } from "@/lib/server/ncert-metadata";
 import { extractPdfText } from "@/lib/server/ncert-pdf";
 import { getFirebaseAdmin } from "@/lib/server/firebase-admin";
+
+// Load environment variables for standalone script execution
+dotenv.config({ path: ".env.local" });
 import {
   buildBookDocId,
   detectLanguage,
@@ -70,18 +74,68 @@ interface ChapterUploadResult {
   sizeBytes: number;
 }
 
+type StorageBucket = ReturnType<Storage["bucket"]>;
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const fetchHtml = async (url: string) => {
-  const response = await fetch(url, {
-    headers: { "User-Agent": USER_AGENT },
-    redirect: "follow",
-    signal: AbortSignal.timeout(45000),
-  });
+const fetchWithRetry = async (
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+  maxRetries = 3,
+  baseDelay = 2000,
+): Promise<Response> => {
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    throw new Error(`Failed to download ${url} (${response.status})`);
+  for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
+    try {
+      console.log(`  Attempting to fetch ${url} (attempt ${attempt}/${maxRetries})...`);
+
+      const response = await fetch(url, {
+        ...init,
+        // New AbortSignal on each attempt
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to download ${url} (${response.status})`);
+      }
+
+      return response;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error("Unknown fetch error");
+      lastError = err;
+      console.warn(`  ✗ Attempt ${attempt} failed:`, err.message);
+
+      if (attempt < maxRetries) {
+        const delay = baseDelay * 2 ** (attempt - 1);
+        console.log(`  ⏳ Waiting ${delay}ms before retry...`);
+        await sleep(delay);
+      }
+    }
   }
+
+  throw new Error(
+    `Failed to fetch ${url} after ${maxRetries} attempts. Last error: ${lastError?.message}`,
+  );
+};
+
+const fetchHtml = async (url: string) => {
+  const response = await fetchWithRetry(
+    url,
+    {
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        Connection: "keep-alive",
+        "Cache-Control": "no-cache",
+      },
+      redirect: "follow",
+    },
+    45000,
+  );
 
   return response.text();
 };
@@ -147,15 +201,14 @@ const parseBookSpecs = (html: string): BookSpec[] => {
 };
 
 const downloadPdf = async (url: string) => {
-  const response = await fetch(url, {
-    headers: { "User-Agent": USER_AGENT },
-    redirect: "follow",
-    signal: AbortSignal.timeout(60000),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch PDF ${url} (${response.status})`);
-  }
+  const response = await fetchWithRetry(
+    url,
+    {
+      headers: { "User-Agent": USER_AGENT },
+      redirect: "follow",
+    },
+    60000,
+  );
 
   return Buffer.from(await response.arrayBuffer());
 };
@@ -166,7 +219,7 @@ const buildStorageDownloadUrl = (bucket: string, path: string, token: string) =>
 };
 
 const uploadBinary = async (
-  bucket: Bucket,
+  bucket: StorageBucket,
   path: string,
   buffer: Buffer,
   contentType: string,
@@ -304,7 +357,35 @@ const main = async () => {
 
   console.log(`Found ${specs.length} textbook entries. Starting upload…`);
 
-  for (const book of specs) {
+  // Build per-class progress metadata
+  const classStats = new Map<
+    string,
+    {
+      total: number;
+      done: number;
+    }
+  >();
+
+  for (const spec of specs) {
+    const entry = classStats.get(spec.class) ?? { total: 0, done: 0 };
+    entry.total += 1;
+    classStats.set(spec.class, entry);
+  }
+
+  const totalBooks = specs.length;
+
+  for (let index = 0; index < specs.length; index += 1) {
+    const book = specs[index];
+    const overallPosition = index + 1;
+
+    const stats = classStats.get(book.class)!;
+    stats.done += 1;
+    classStats.set(book.class, stats);
+
+    console.log(
+      `\n[Class ${book.class}] Book ${stats.done}/${stats.total} • Overall ${overallPosition}/${totalBooks}`,
+    );
+
     await processBook(book);
     if (BOOK_DELAY_MS > 0) {
       await sleep(BOOK_DELAY_MS);

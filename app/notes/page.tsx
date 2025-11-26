@@ -114,7 +114,7 @@ export default function NotesPage() {
     return () => controller.abort();
   }, []);
 
-  const classes = options?.classes ?? [];
+  const classes = useMemo(() => options?.classes ?? [], [options]);
   const selectedClassEntry = useMemo(
     () => classes.find((entry) => entry.class === selectedClass),
     [classes, selectedClass],
@@ -391,3 +391,6 @@ export default function NotesPage() {
           </div>
         </div>
       </main>
+    </div>
+  );
+}
