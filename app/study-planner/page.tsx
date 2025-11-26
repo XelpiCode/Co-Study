@@ -631,58 +631,67 @@ function parseSummaryToSections(summary: string): SummarySection[] {
 function renderRichText(content: string) {
   const lines = content.split("\n");
   return lines.map((line, index) => {
-    const trimmed = line.trim();
+    let trimmed = line.trim();
+
+    // Remove markdown heading markers (##, ###, etc.)
+    if (trimmed.match(/^#+\s/)) {
+      trimmed = trimmed.replace(/^#+\s*/, "");
+    }
 
     // Bullets
     if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
+      const bulletContent = trimmed.replace(/^[-•]\s*/, "");
       return (
         <li key={index} className="ml-5 mb-1 list-disc">
-          {trimmed.replace(/^[-•]\s*/, "")}
+          {parseInlineMarkdown(bulletContent)}
         </li>
       );
     }
 
-    // Bold segments
-    const boldRegex = /\*\*(.+?)\*\*/g;
-    if (boldRegex.test(line)) {
-      const parts: (string | JSX.Element)[] = [];
-      let lastIndex = 0;
-      let match: RegExpExecArray | null;
-      boldRegex.lastIndex = 0;
-
-      while ((match = boldRegex.exec(line)) !== null) {
-        if (match.index > lastIndex) {
-          parts.push(line.substring(lastIndex, match.index));
-        }
-        parts.push(
-          <strong key={`bold-${match.index}`} className="font-semibold">
-            {match[1]}
-          </strong>,
-        );
-        lastIndex = match.index + match[0].length;
-      }
-
-      if (lastIndex < line.length) {
-        parts.push(line.substring(lastIndex));
-      }
-
-      return (
-        <p key={index} className="mb-2 text-sm leading-relaxed">
-          {parts}
-        </p>
-      );
-    }
-
+    // Regular paragraph with inline markdown
     if (trimmed) {
       return (
         <p key={index} className="mb-2 text-sm leading-relaxed">
-          {line}
+          {parseInlineMarkdown(trimmed)}
         </p>
       );
     }
 
     return <br key={index} />;
   });
+}
+
+function parseInlineMarkdown(text: string): (string | JSX.Element)[] {
+  const parts: (string | JSX.Element)[] = [];
+  let currentIndex = 0;
+  let keyCounter = 0;
+
+  // Match **bold** patterns
+  const boldRegex = /\*\*(.+?)\*\*/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = boldRegex.exec(text)) !== null) {
+    // Add text before the match
+    if (match.index > currentIndex) {
+      parts.push(text.substring(currentIndex, match.index));
+    }
+    
+    // Add bold text
+    parts.push(
+      <strong key={`bold-${keyCounter++}`} className="font-semibold text-slate-900 dark:text-slate-50">
+        {match[1]}
+      </strong>
+    );
+    
+    currentIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text
+  if (currentIndex < text.length) {
+    parts.push(text.substring(currentIndex));
+  }
+
+  return parts.length > 0 ? parts : [text];
 }
 
 function StudySummarySections({ summary }: { summary: string }) {
