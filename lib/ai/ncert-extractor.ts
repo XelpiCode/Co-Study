@@ -33,8 +33,11 @@ const getMatchScore = (chapterName: string, topic: string) => {
   return matches.length / queryWords.length;
 };
 
-const findChapter = (chapters: NCERTChapterRecord[], topicName: string) => {
-  let bestChapter: NCERTChapter | null = null;
+const findChapter = (
+  chapters: NCERTChapterRecord[],
+  topicName: string,
+): NCERTChapterRecord | null => {
+  let bestChapter: NCERTChapterRecord | null = null;
   let bestScore = 0;
 
   for (const chapter of chapters) {
@@ -45,11 +48,7 @@ const findChapter = (chapters: NCERTChapterRecord[], topicName: string) => {
     }
   }
 
-  if (!bestChapter) {
-    bestChapter = book.chapters[0];
-  }
-
-  return { book, chapter: bestChapter };
+  return bestChapter ?? chapters[0] ?? null;
 };
 
 export const getNCERTTextForTopic = async (
@@ -67,7 +66,7 @@ export const getNCERTTextForTopic = async (
     return null;
   }
 
-  const chapter = findChapter(bookResponse.chapters, topicName) ?? bookResponse.chapters[0];
+  const chapter = findChapter(bookResponse.chapters, topicName);
   if (!chapter) return null;
 
   const text = await loadChapterText(chapter);
